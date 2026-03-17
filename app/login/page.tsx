@@ -24,15 +24,31 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    // Simulate API call - replace with real backend call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    router.push("/")
-    setIsLoading(false)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Login failed")
+
+      localStorage.setItem("accessToken", data.accessToken)
+      localStorage.setItem("refreshToken", data.refreshToken)
+      localStorage.setItem("user", JSON.stringify(data.user))
+      router.push("/")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleOAuthLogin = (provider: string) => {
-    // In real app, this would redirect to OAuth provider
-    console.log(`Login with ${provider}`)
+    if (provider === "google") {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`
+    }
   }
 
   return (

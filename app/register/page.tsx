@@ -63,14 +63,35 @@ export default function RegisterPage() {
 
     setIsLoading(true)
 
-    // Simulate API call - replace with real backend call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    router.push("/login?registered=true")
-    setIsLoading(false)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Registration failed")
+
+      localStorage.setItem("accessToken", data.accessToken)
+      localStorage.setItem("refreshToken", data.refreshToken)
+      localStorage.setItem("user", JSON.stringify(data.user))
+      router.push("/")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleOAuthLogin = (provider: string) => {
-    console.log(`Register with ${provider}`)
+    if (provider === "google") {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`
+    }
   }
 
   return (

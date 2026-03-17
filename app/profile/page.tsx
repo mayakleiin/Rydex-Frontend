@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { CarCard } from "@/components/featured-cars"
@@ -19,8 +19,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-  Star,
-  MapPin,
   Calendar,
   Car,
   Heart,
@@ -31,128 +29,66 @@ import {
   Loader2,
 } from "lucide-react"
 
-// Mock user data
-const userData = {
-  id: "user1",
-  firstName: "Michael",
-  lastName: "Smith",
-  email: "michael.smith@email.com",
-  phone: "+1 (555) 123-4567",
-  avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
-  bio: "Car enthusiast and weekend adventurer. I love sharing my collection with fellow enthusiasts who appreciate quality vehicles.",
-  location: "Los Angeles, CA",
-  memberSince: "January 2021",
-  verified: true,
-  responseRate: "98%",
-  responseTime: "Within 1 hour",
-  stats: {
-    totalPosts: 156,
-    carsOwned: 5,
-    totalReviews: 234,
-    averageRating: 4.9,
-  },
+function getAvatarUrl(profileImage: string | undefined) {
+  if (!profileImage) return ""
+  if (profileImage.startsWith("http")) return profileImage
+  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${profileImage}`
 }
 
-// Mock user's cars
-const userCars = [
-  {
-    id: "1",
-    name: "Porsche 911 Carrera",
-    year: 2024,
-    price: 450,
-    rating: 4.9,
-    reviews: 128,
-    image: "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&q=80",
-    location: "Los Angeles, CA",
-    fuelType: "Premium",
-    seats: 2,
-    horsepower: 379,
-    likes: 312,
+function mapCarFromApi(car: any) {
+  return {
+    id: car._id,
+    name: `${car.make} ${car.model}`,
+    year: car.year,
+    price: car.pricePerDay,
+    rating: 0,
+    reviews: car.commentsCount ?? 0,
+    image: car.image?.startsWith("http") ? car.image : car.image ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}` : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    location: car.location,
+    fuelType: car.fuelType ?? "Gasoline",
+    seats: car.seats ?? 4,
+    horsepower: 0,
     owner: {
-      name: "Michael S.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
+      name: car.owner?.username ?? "Owner",
+      avatar: getAvatarUrl(car.owner?.profileImage),
     },
-  },
-  {
-    id: "2",
-    name: "Mercedes-Benz S-Class",
-    year: 2024,
-    price: 380,
-    rating: 4.8,
-    reviews: 96,
-    image: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80",
-    location: "Los Angeles, CA",
-    fuelType: "Premium",
-    seats: 5,
-    horsepower: 429,
-    likes: 241,
-    owner: {
-      name: "Michael S.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
-    },
-  },
-  {
-    id: "3",
-    name: "BMW M4 Competition",
-    year: 2023,
-    price: 320,
-    rating: 4.9,
-    reviews: 84,
-    image: "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&q=80",
-    location: "Los Angeles, CA",
-    fuelType: "Premium",
-    seats: 4,
-    horsepower: 503,
-    likes: 198,
-    owner: {
-      name: "Michael S.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
-    },
-  },
-]
+    likes: car.likes?.length ?? 0,
+  }
+}
 
-// Mock recent reviews
-const recentReviews = [
-  {
-    id: "r1",
-    carName: "Porsche 911 Carrera",
-    reviewer: {
-      name: "Jennifer K.",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80",
-    },
-    rating: 5,
-    date: "2024-01-15",
-    content: "Absolutely incredible experience! The car was in pristine condition.",
-  },
-  {
-    id: "r2",
-    carName: "Mercedes-Benz S-Class",
-    reviewer: {
-      name: "David R.",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80",
-    },
-    rating: 5,
-    date: "2024-01-10",
-    content: "Perfect for my business trip. Michael was very professional.",
-  },
-]
-
-function EditProfileDialog() {
-  const [formData, setFormData] = useState({
-    firstName: userData.firstName,
-    lastName: userData.lastName,
-  })
+function EditProfileDialog({ user, onSaved }: { user: any; onSaved: (updated: any) => void }) {
+  const [username, setUsername] = useState(user?.username ?? "")
   const [isLoading, setIsLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const body = new FormData()
+      body.append("username", username)
+      if (fileRef.current?.files?.[0]) body.append("profileImage", fileRef.current.files[0])
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${user._id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body,
+      })
+      const data = await res.json()
+      if (res.ok) {
+        localStorage.setItem("user", JSON.stringify(data))
+        onSaved(data)
+        setOpen(false)
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="border-border">
           <Edit2 className="w-4 h-4 mr-2" />
@@ -165,63 +101,38 @@ function EditProfileDialog() {
           <DialogDescription>Update your photo and display name.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Avatar */}
           <div className="flex items-center gap-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={userData.avatar} alt={userData.firstName} />
-              <AvatarFallback>{userData.firstName.charAt(0)}</AvatarFallback>
+              <AvatarImage src={getAvatarUrl(user?.profileImage)} alt={user?.username} />
+              <AvatarFallback>{user?.username?.charAt(0)}</AvatarFallback>
             </Avatar>
-            <Button type="button" variant="outline" className="border-border">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" id="avatar-upload" />
+            <Button type="button" variant="outline" className="border-border" onClick={() => fileRef.current?.click()}>
               <Camera className="w-4 h-4 mr-2" />
               Change Photo
             </Button>
           </div>
 
-          {/* Name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="bg-input border-border"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="bg-input border-border"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Display Name</Label>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="bg-input border-border"
+              required
+            />
           </div>
 
           <div className="flex justify-end gap-3">
-            <DialogTrigger asChild>
-              <Button type="button" variant="outline" className="border-border">
-                Cancel
-              </Button>
-            </DialogTrigger>
-            <Button
-              type="submit"
-              className="bg-primary text-primary-foreground"
-              disabled={isLoading}
-            >
+            <Button type="button" variant="outline" className="border-border" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-primary text-primary-foreground" disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
               ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
+                <><Check className="w-4 h-4 mr-2" />Save Changes</>
               )}
             </Button>
           </div>
@@ -232,9 +143,42 @@ function EditProfileDialog() {
 }
 
 export default function ProfilePage() {
+  const [user, setUser] = useState<any>(null)
+  const [userCars, setUserCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("user") || "null")
+    if (!stored) return
+    setUser(stored)
+
+    const fetchData = async () => {
+      try {
+        const [userRes, carsRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${stored._id}`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${stored._id}/cars?limit=50`),
+        ])
+        const [userData, carsData] = await Promise.all([userRes.json(), carsRes.json()])
+        setUser(userData)
+        setUserCars(carsData.cars.map(mapCarFromApi))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Navigation isAuthenticated user={{ name: userData.firstName, avatar: userData.avatar }} />
+      <Navigation isAuthenticated user={{ name: user?.username, avatar: getAvatarUrl(user?.profileImage) }} />
       <main className="pt-16">
         {/* Profile Header */}
         <div className="bg-card border-b border-border">
@@ -243,45 +187,32 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative">
                 <Avatar className="w-32 h-32 border-4 border-primary">
-                  <AvatarImage src={userData.avatar} alt={userData.firstName} />
+                  <AvatarImage src={getAvatarUrl(user?.profileImage)} alt={user?.username} />
                   <AvatarFallback className="text-4xl">
-                    {userData.firstName.charAt(0)}
+                    {user?.username?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                {userData.verified && (
-                  <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-6 h-6 text-primary-foreground" />
-                  </div>
-                )}
               </div>
 
               {/* Info */}
               <div className="flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
                   <h1 className="font-serif text-3xl font-medium italic text-foreground">
-                    {userData.firstName} <span className="text-primary">{userData.lastName}</span>
+                    <span className="text-primary">{user?.username}</span>
                   </h1>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-4">
                   <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {userData.location}
-                  </span>
-                  <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    Member since {userData.memberSince}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-primary fill-primary" />
-                    {userData.stats.averageRating} ({userData.stats.totalReviews} reviews)
+                    Member since {new Date(user?.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                   </span>
                 </div>
-                <p className="text-muted-foreground max-w-2xl">{userData.bio}</p>
+                <p className="text-muted-foreground">{user?.email}</p>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3">
-                <EditProfileDialog />
+                <EditProfileDialog user={user} onSaved={setUser} />
                 <Button variant="outline" className="border-border">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
@@ -293,37 +224,19 @@ export default function ProfilePage() {
 
         {/* Stats Cards */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-primary mb-1">
-                  {userData.stats.totalPosts}
-                </div>
-                <div className="text-sm text-muted-foreground">Total Posts</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-primary mb-1">
-                  {userData.stats.carsOwned}
-                </div>
+                <div className="text-3xl font-bold text-primary mb-1">{userCars.length}</div>
                 <div className="text-sm text-muted-foreground">Cars Listed</div>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <div className="text-3xl font-bold text-primary mb-1">
-                  {userData.stats.totalReviews}
+                  {userCars.reduce((sum, c) => sum + c.likes, 0)}
                 </div>
-                <div className="text-sm text-muted-foreground">Reviews</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-primary mb-1">
-                  {userData.stats.averageRating}
-                </div>
-                <div className="text-sm text-muted-foreground">Avg. Rating</div>
+                <div className="text-sm text-muted-foreground">Total Likes</div>
               </CardContent>
             </Card>
           </div>
@@ -337,10 +250,6 @@ export default function ProfilePage() {
                 <Car className="w-4 h-4" />
                 My Cars ({userCars.length})
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="gap-2">
-                <Star className="w-4 h-4" />
-                Reviews ({userData.stats.totalReviews})
-              </TabsTrigger>
               <TabsTrigger value="favorites" className="gap-2">
                 <Heart className="w-4 h-4" />
                 Favorites
@@ -348,50 +257,17 @@ export default function ProfilePage() {
             </TabsList>
 
             <TabsContent value="cars">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userCars.map((car) => (
-                  <CarCard key={car.id} car={car} />
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="reviews">
-              <div className="space-y-4">
-                {recentReviews.map((review) => (
-                  <Card key={review.id} className="bg-card border-border">
-                    <CardContent className="p-6">
-                      <div className="flex items-start gap-4">
-                        <Avatar>
-                          <AvatarImage src={review.reviewer.avatar} alt={review.reviewer.name} />
-                          <AvatarFallback>{review.reviewer.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h4 className="font-medium text-foreground">
-                                {review.reviewer.name}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                Reviewed {review.carName}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {Array.from({ length: review.rating }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className="w-4 h-4 text-primary fill-primary"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-muted-foreground">{review.content}</p>
-                          <p className="text-sm text-muted-foreground mt-2">{review.date}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {userCars.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {userCars.map((car) => (
+                    <CarCard key={car.id} car={car} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 text-muted-foreground">
+                  You haven&apos;t listed any cars yet.
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="favorites">
