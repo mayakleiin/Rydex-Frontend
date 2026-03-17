@@ -1,125 +1,58 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Heart, Star, Fuel, Users, Gauge } from "lucide-react"
+import { Heart, Star, Fuel, Users, Gauge, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-// Mock data for featured cars
-const featuredCars = [
-  {
-    id: "1",
-    name: "Porsche 911 Carrera",
-    year: 2024,
-    price: 450,
-    rating: 4.9,
-    reviews: 128,
-    image: "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&q=80",
-    location: "Los Angeles, CA",
-    fuelType: "Premium",
-    seats: 2,
-    horsepower: 379,
+function mapCarFromApi(car: any) {
+  return {
+    id: car._id,
+    name: `${car.make} ${car.model}`,
+    year: car.year,
+    price: car.pricePerDay,
+    rating: 0,
+    reviews: car.commentsCount ?? 0,
+    image: car.image?.startsWith("http")
+      ? car.image
+      : car.image
+      ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
+      : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    location: car.location,
+    fuelType: car.fuelType ?? "Gasoline",
+    seats: car.seats ?? 4,
+    horsepower: 0,
     owner: {
-      name: "Michael S.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80"
+      name: car.owner?.username ?? "Owner",
+      avatar: car.owner?.profileImage?.startsWith("http")
+        ? car.owner.profileImage
+        : car.owner?.profileImage
+        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.owner.profileImage}`
+        : "",
     },
-    likes: 245
-  },
-  {
-    id: "2",
-    name: "Mercedes-Benz S-Class",
-    year: 2024,
-    price: 380,
-    rating: 4.8,
-    reviews: 96,
-    image: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80",
-    location: "Miami, FL",
-    fuelType: "Premium",
-    seats: 5,
-    horsepower: 429,
-    owner: {
-      name: "Sarah L.",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80"
-    },
-    likes: 189
-  },
-  {
-    id: "3",
-    name: "BMW M4 Competition",
-    year: 2023,
-    price: 320,
-    rating: 4.9,
-    reviews: 84,
-    image: "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&q=80",
-    location: "New York, NY",
-    fuelType: "Premium",
-    seats: 4,
-    horsepower: 503,
-    owner: {
-      name: "James R.",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80"
-    },
-    likes: 312
-  },
-  {
-    id: "4",
-    name: "Tesla Model S Plaid",
-    year: 2024,
-    price: 350,
-    rating: 4.7,
-    reviews: 156,
-    image: "https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?w=800&q=80",
-    location: "San Francisco, CA",
-    fuelType: "Electric",
-    seats: 5,
-    horsepower: 1020,
-    owner: {
-      name: "Emily W.",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80"
-    },
-    likes: 427
-  },
-  {
-    id: "5",
-    name: "Range Rover Sport",
-    year: 2024,
-    price: 280,
-    rating: 4.8,
-    reviews: 72,
-    image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&q=80",
-    location: "Chicago, IL",
-    fuelType: "Diesel",
-    seats: 5,
-    horsepower: 395,
-    owner: {
-      name: "David K.",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80"
-    },
-    likes: 156
-  },
-  {
-    id: "6",
-    name: "Audi RS e-tron GT",
-    year: 2024,
-    price: 420,
-    rating: 4.9,
-    reviews: 64,
-    image: "https://images.unsplash.com/photo-1614200187524-dc4b892acf16?w=800&q=80",
-    location: "Seattle, WA",
-    fuelType: "Electric",
-    seats: 4,
-    horsepower: 637,
-    owner: {
-      name: "Lisa M.",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80"
-    },
-    likes: 283
+    likes: car.likes?.length ?? 0,
   }
-]
+}
+
+interface Car {
+  id: string
+  name: string
+  year: number
+  price: number
+  rating: number
+  reviews: number
+  image: string
+  location: string
+  fuelType: string
+  seats: number
+  horsepower: number
+  owner: { name: string; avatar: string }
+  likes: number
+}
 
 interface CarCardProps {
-  car: typeof featuredCars[0]
+  car: Car
   onLike?: (carId: string) => void
   isLiked?: boolean
 }
@@ -215,6 +148,17 @@ export function CarCard({ car, onLike, isLiked = false }: CarCardProps) {
 }
 
 export function FeaturedCars() {
+  const [cars, setCars] = useState<Car[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=6`)
+      .then((r) => r.json())
+      .then((data) => setCars((data.cars ?? []).map(mapCarFromApi)))
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [])
+
   return (
     <section className="py-24 bg-secondary/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -230,14 +174,21 @@ export function FeaturedCars() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredCars.map((car) => (
-            <CarCard key={car.id} car={car} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {cars.map((car) => (
+              <CarCard key={car.id} car={car} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
 }
 
-export { featuredCars, CarCard }
+export { CarCard }
+export type { Car }
