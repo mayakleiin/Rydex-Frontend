@@ -266,7 +266,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("user") || "null")
-    if (!stored) return
+    if (!stored) { window.location.href = "/login"; return }
     setUser(stored)
 
     const fetchData = async () => {

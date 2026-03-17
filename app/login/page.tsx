@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -37,7 +35,7 @@ export default function LoginPage() {
       localStorage.setItem("accessToken", data.accessToken)
       localStorage.setItem("refreshToken", data.refreshToken)
       localStorage.setItem("user", JSON.stringify(data.user))
-      router.push("/")
+      window.location.href = "/"
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -48,6 +46,8 @@ export default function LoginPage() {
   const handleOAuthLogin = (provider: string) => {
     if (provider === "google") {
       window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`
+    } else if (provider === "facebook") {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook`
     }
   }
 

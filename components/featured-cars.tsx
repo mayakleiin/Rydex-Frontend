@@ -90,7 +90,7 @@ export function CarCard({ car, onLike, isLiked = false }: CarCardProps) {
         </Button>
         <div className="absolute bottom-3 left-3 flex items-center gap-2">
           <img
-            src={car.owner.avatar}
+            src={car.owner.avatar || null}
             alt={car.owner.name}
             className="w-8 h-8 rounded-full border-2 border-background"
           />
