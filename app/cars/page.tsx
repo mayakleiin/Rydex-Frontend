@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { CarCard } from "@/components/featured-cars"
@@ -179,6 +179,9 @@ function FilterSidebar({
 export default function CarsPage() {
   const [allCars, setAllCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
   const [isLoadingCars, setIsLoadingCars] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [location, setLocation] = useState("")
   const [category, setCategory] = useState("all")
@@ -187,21 +190,45 @@ export default function CarsPage() {
   const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([])
   const [selectedSeats, setSelectedSeats] = useState<number[]>([])
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const LIMIT = 12
+
+  const loadCars = useCallback(async (pageNum: number, replace: boolean) => {
+    if (pageNum === 1) setIsLoadingCars(true)
+    else setIsLoadingMore(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?page=${pageNum}&limit=${LIMIT}`)
+      const data = await res.json()
+      const mapped = data.cars.map(mapCarFromApi)
+      setAllCars((prev) => replace ? mapped : [...prev, ...mapped])
+      setHasMore(pageNum < data.totalPages)
+      setPage(pageNum)
+    } catch {
+      // keep existing on error
+    } finally {
+      setIsLoadingCars(false)
+      setIsLoadingMore(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=50`)
-        const data = await res.json()
-        setAllCars(data.cars.map(mapCarFromApi))
-      } catch {
-        // keep empty on error
-      } finally {
-        setIsLoadingCars(false)
-      }
-    }
-    fetchCars()
-  }, [])
+    loadCars(1, true)
+  }, [loadCars])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoadingCars) {
+          loadCars(page + 1, false)
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, isLoadingMore, isLoadingCars, page, loadCars])
 
   const resetFilters = () => {
     setPriceRange([0, 1000])
@@ -362,6 +389,7 @@ export default function CarsPage() {
                 <div>
                   <h1 className="font-serif text-2xl font-medium italic text-foreground">
                     {filteredCars.length} <span className="text-primary">Cars</span> Available
+                    {hasMore && <span className="text-sm font-normal text-muted-foreground"> (loading more...)</span>}
                   </h1>
                   {location && (
                     <p className="text-muted-foreground">in {location}</p>
@@ -532,6 +560,19 @@ export default function CarsPage() {
                     Reset Filters
                   </Button>
                 </div>
+              )}
+
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="h-4" />
+              {isLoadingMore && (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              )}
+              {!hasMore && allCars.length > 0 && (
+                <p className="text-center text-muted-foreground text-sm py-8">
+                  All cars loaded
+                </p>
               )}
             </div>
           </div>
