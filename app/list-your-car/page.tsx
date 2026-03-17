@@ -68,7 +68,9 @@ export default function ListYourCarPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [images, setImages] = useState<string[]>([])
+  const [error, setError] = useState("")
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [formData, setFormData] = useState({
     // Step 1 - Basic Info
     brand: "",
@@ -116,18 +118,17 @@ export default function ListYourCarPage() {
     handleChange("features", newFeatures)
   }
 
-  const handleImageUpload = () => {
-    // In real app, this would open file picker and upload to storage
-    const mockImages = [
-      "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&q=80",
-      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80",
-      "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=80",
-    ]
-    setImages([...images, mockImages[images.length % mockImages.length]])
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const newFiles = [...imageFiles, ...files].slice(0, 8)
+    setImageFiles(newFiles)
+    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)))
   }
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index))
+    const newFiles = imageFiles.filter((_, i) => i !== index)
+    setImageFiles(newFiles)
+    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)))
   }
 
   const nextStep = () => {
@@ -139,10 +140,44 @@ export default function ListYourCarPage() {
   }
 
   const handleSubmit = async () => {
+    setError("")
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    router.push("/profile?listed=true")
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) {
+        router.push("/login")
+        return
+      }
+
+      const body = new FormData()
+      body.append("title", `${formData.brand} ${formData.model} ${formData.year}`)
+      body.append("make", formData.brand)
+      body.append("model", formData.model)
+      body.append("year", formData.year)
+      body.append("description", formData.description || "No description provided")
+      body.append("location", formData.location)
+      body.append("pricePerDay", formData.pricePerDay)
+      if (formData.fuelType) body.append("fuelType", formData.fuelType)
+      if (formData.transmission) body.append("transmission", formData.transmission)
+      if (formData.seats) body.append("seats", formData.seats)
+      if (imageFiles[0]) body.append("image", imageFiles[0])
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body,
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to create listing")
+
+      router.push("/profile?listed=true")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const steps = [
@@ -279,10 +314,18 @@ export default function ListYourCarPage() {
                   {/* Image Upload */}
                   <div className="space-y-2">
                     <Label>Photos</Label>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.map((image, index) => (
+                      {imagePreviews.map((preview, index) => (
                         <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                          <img src={image} alt={`Car ${index + 1}`} className="w-full h-full object-cover" />
+                          <img src={preview} alt={`Car ${index + 1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeImage(index)}
                             className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 flex items-center justify-center text-foreground hover:bg-background"
@@ -291,9 +334,10 @@ export default function ListYourCarPage() {
                           </button>
                         </div>
                       ))}
-                      {images.length < 8 && (
+                      {imagePreviews.length < 8 && (
                         <button
-                          onClick={handleImageUpload}
+                          type="button"
+                          onClick={() => document.getElementById("image-upload")?.click()}
                           className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary flex flex-col items-center justify-center gap-2 transition-colors"
                         >
                           <Upload className="w-8 h-8 text-muted-foreground" />
@@ -597,6 +641,13 @@ export default function ListYourCarPage() {
                     )}
                   </div>
                 </>
+              )}
+
+              {/* Error */}
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                  {error}
+                </div>
               )}
 
               {/* Navigation Buttons */}
