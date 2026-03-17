@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Heart, Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Menu, X, Heart, Sparkles, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AISearch } from "@/components/ai-search"
 
@@ -14,9 +15,45 @@ interface NavigationProps {
   }
 }
 
-export function Navigation({ isAuthenticated = false, user }: NavigationProps) {
+export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [aiSearchOpen, setAiSearchOpen] = useState(false)
+  const [authState, setAuthState] = useState<{ isAuthenticated: boolean; user: { name: string; avatar?: string } | null }>({
+    isAuthenticated: isAuthProp ?? false,
+    user: userProp ?? null,
+  })
+  const router = useRouter()
+
+  useEffect(() => {
+    if (isAuthProp !== undefined) return
+    const stored = localStorage.getItem("user")
+    if (stored) {
+      const u = JSON.parse(stored)
+      setAuthState({
+        isAuthenticated: true,
+        user: {
+          name: u.username,
+          avatar: u.profileImage?.startsWith("http")
+            ? u.profileImage
+            : u.profileImage
+            ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${u.profileImage}`
+            : undefined,
+        },
+      })
+    }
+  }, [isAuthProp])
+
+  const isAuthenticated = isAuthProp ?? authState.isAuthenticated
+  const user = userProp ?? authState.user
+
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("refreshToken")
+    localStorage.removeItem("user")
+    setMobileMenuOpen(false)
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50">
@@ -70,9 +107,9 @@ export function Navigation({ isAuthenticated = false, user }: NavigationProps) {
                 <Link href="/profile">
                   <Button variant="ghost" size="icon-sm">
                     {user?.avatar ? (
-                      <img 
-                        src={user.avatar} 
-                        alt={user.name} 
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
                         className="w-8 h-8 rounded-full object-cover ring-2 ring-border"
                       />
                     ) : (
@@ -85,6 +122,10 @@ export function Navigation({ isAuthenticated = false, user }: NavigationProps) {
                     <span className="sr-only">Profile</span>
                   </Button>
                 </Link>
+                <Button variant="ghost" size="icon-sm" onClick={handleLogout} title="Sign out">
+                  <LogOut className="w-5 h-5" />
+                  <span className="sr-only">Sign out</span>
+                </Button>
               </>
             ) : (
               <>
@@ -153,6 +194,10 @@ export function Navigation({ isAuthenticated = false, user }: NavigationProps) {
                     <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full">Profile</Button>
                     </Link>
+                    <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleLogout}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
                   </>
                 ) : (
                   <>
