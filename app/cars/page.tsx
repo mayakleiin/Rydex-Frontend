@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { CarCard, featuredCars } from "@/components/featured-cars"
+import { CarCard } from "@/components/featured-cars"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,126 +23,28 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Search, SlidersHorizontal, X, MapPin, Grid3X3, List } from "lucide-react"
+import { Search, SlidersHorizontal, X, MapPin, Grid3X3, List, Loader2 } from "lucide-react"
 
-// Extended car data for the listings
-const allCars = [
-  ...featuredCars,
-  {
-    id: "7",
-    name: "Lamborghini Huracan",
-    year: 2023,
-    price: 850,
-    rating: 4.9,
-    reviews: 42,
-    image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=80",
-    location: "Las Vegas, NV",
-    fuelType: "Premium",
-    seats: 2,
-    horsepower: 631,
+function mapCarFromApi(car: any) {
+  return {
+    id: car._id,
+    name: `${car.make} ${car.model}`,
+    year: car.year,
+    price: car.pricePerDay,
+    rating: 0,
+    reviews: car.commentsCount ?? 0,
+    image: car.image || "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    location: car.location,
+    fuelType: car.fuelType ?? "Gasoline",
+    seats: car.seats ?? 4,
+    horsepower: 0,
     owner: {
-      name: "Tony V.",
-      avatar: "https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=100&q=80"
+      name: car.owner?.username ?? "Owner",
+      avatar: car.owner?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
     },
-    category: "exotic",
-    likes: 534
-  },
-  {
-    id: "8",
-    name: "Rolls-Royce Ghost",
-    year: 2024,
-    price: 980,
-    rating: 5.0,
-    reviews: 28,
-    image: "https://images.unsplash.com/photo-1631295868223-63265b40d9e4?w=800&q=80",
-    location: "Beverly Hills, CA",
-    fuelType: "Premium",
-    seats: 5,
-    horsepower: 563,
-    owner: {
-      name: "Victoria P.",
-      avatar: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&q=80"
-    },
-    category: "luxury",
-    likes: 412
-  },
-  {
-    id: "9",
-    name: "Ferrari 488 Spider",
-    year: 2022,
-    price: 750,
-    rating: 4.8,
-    reviews: 56,
-    image: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80",
-    location: "Miami, FL",
-    fuelType: "Premium",
-    seats: 2,
-    horsepower: 661,
-    owner: {
-      name: "Carlos M.",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80"
-    },
-    category: "sports",
-    likes: 389
-  },
-  {
-    id: "10",
-    name: "Cadillac Escalade",
-    year: 2024,
-    price: 220,
-    rating: 4.7,
-    reviews: 89,
-    image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80",
-    location: "Houston, TX",
-    fuelType: "Premium",
-    seats: 7,
-    horsepower: 420,
-    owner: {
-      name: "Robert J.",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80"
-    },
-    category: "suv",
-    likes: 178
-  },
-  {
-    id: "11",
-    name: "Rivian R1T",
-    year: 2024,
-    price: 180,
-    rating: 4.6,
-    reviews: 45,
-    image: "https://images.unsplash.com/photo-1617886322168-72b886573c35?w=800&q=80",
-    location: "Denver, CO",
-    fuelType: "Electric",
-    seats: 5,
-    horsepower: 835,
-    owner: {
-      name: "Nathan K.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80"
-    },
-    category: "electric",
-    likes: 267
-  },
-  {
-    id: "12",
-    name: "Bentley Continental GT",
-    year: 2023,
-    price: 680,
-    rating: 4.9,
-    reviews: 34,
-    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80",
-    location: "San Diego, CA",
-    fuelType: "Premium",
-    seats: 4,
-    horsepower: 542,
-    owner: {
-      name: "William H.",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80"
-    },
-    category: "luxury",
-    likes: 356
+    likes: car.likes?.length ?? 0,
   }
-]
+}
 
 const categories = [
   { value: "all", label: "All Categories" },
@@ -275,6 +177,8 @@ function FilterSidebar({
 }
 
 export default function CarsPage() {
+  const [allCars, setAllCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
+  const [isLoadingCars, setIsLoadingCars] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [location, setLocation] = useState("")
   const [category, setCategory] = useState("all")
@@ -283,6 +187,21 @@ export default function CarsPage() {
   const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([])
   const [selectedSeats, setSelectedSeats] = useState<number[]>([])
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=50`)
+        const data = await res.json()
+        setAllCars(data.cars.map(mapCarFromApi))
+      } catch {
+        // keep empty on error
+      } finally {
+        setIsLoadingCars(false)
+      }
+    }
+    fetchCars()
+  }, [])
 
   const resetFilters = () => {
     setPriceRange([0, 1000])
@@ -582,7 +501,11 @@ export default function CarsPage() {
               )}
 
               {/* Cars Grid */}
-              {filteredCars.length > 0 ? (
+              {isLoadingCars ? (
+                <div className="flex justify-center items-center py-24">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : filteredCars.length > 0 ? (
                 <div
                   className={
                     viewMode === "grid"
