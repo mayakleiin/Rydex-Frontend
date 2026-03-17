@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Navigation } from "@/components/navigation"
@@ -14,66 +14,76 @@ import {
   MapPin,
   Fuel,
   Users,
-  Gauge,
   Calendar,
   Trash2,
   Car,
   ArrowRight,
+  Loader2,
 } from "lucide-react"
 
-// Mock favorite cars data
-const initialFavorites = [
-  {
-    id: "1",
-    name: "Tesla Model S Plaid",
-    image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=60",
-    price: 299,
-    location: "Los Angeles, CA",
-    rating: 4.9,
-    reviews: 127,
-    year: 2024,
-    transmission: "Automatic",
-    fuel: "Electric",
-    seats: 5,
-    category: "Electric",
-    addedDate: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Porsche 911 Carrera",
-    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=60",
-    price: 450,
-    location: "Miami, FL",
-    rating: 5.0,
-    reviews: 89,
-    year: 2023,
-    transmission: "Manual",
-    fuel: "Gasoline",
-    seats: 2,
-    category: "Sports",
-    addedDate: "2024-01-10",
-  },
-  {
-    id: "3",
-    name: "Range Rover Sport",
-    image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&auto=format&fit=crop&q=60",
-    price: 275,
-    location: "New York, NY",
-    rating: 4.8,
-    reviews: 156,
-    year: 2024,
-    transmission: "Automatic",
-    fuel: "Hybrid",
-    seats: 5,
-    category: "SUV",
-    addedDate: "2024-01-05",
-  },
-]
+
+type FavoriteCar = {
+  id: string
+  name: string
+  image: string
+  price: number
+  location: string
+  rating: number
+  reviews: number
+  year: number
+  transmission: string
+  fuel: string
+  seats: number
+  category: string
+}
 
 export default function FavoritesPage() {
-  const [favorites, setFavorites] = useState(initialFavorites)
+  const [favorites, setFavorites] = useState<FavoriteCar[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const removeFavorite = (id: string) => {
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "null")
+        if (!user) return
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=100`)
+        const data = await res.json()
+
+        const liked = data.cars
+          .filter((car: any) => car.likes?.includes(user._id))
+          .map((car: any) => ({
+            id: car._id,
+            name: `${car.make} ${car.model}`,
+            image: car.image || "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+            price: car.pricePerDay,
+            location: car.location,
+            rating: 0,
+            reviews: car.commentsCount ?? 0,
+            year: car.year,
+            transmission: car.transmission ?? "Automatic",
+            fuel: car.fuelType ?? "Gasoline",
+            seats: car.seats ?? 4,
+            category: car.fuelType ?? "Car",
+          }))
+
+        setFavorites(liked)
+      } catch {
+        // keep empty on error
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchFavorites()
+  }, [])
+
+  const removeFavorite = async (id: string) => {
+    const token = localStorage.getItem("accessToken")
+    if (!token) return
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${id}/like`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
     setFavorites(favorites.filter((car) => car.id !== id))
   }
 
@@ -98,7 +108,11 @@ export default function FavoritesPage() {
             </p>
           </div>
 
-          {favorites.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center py-24">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : favorites.length === 0 ? (
             /* Empty State */
             <div className="text-center py-20">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
@@ -189,15 +203,6 @@ export default function FavoritesPage() {
                         <Users className="w-3.5 h-3.5" />
                         <span>{car.seats} seats</span>
                       </div>
-                    </div>
-
-                    {/* Added Date */}
-                    <div className="text-xs text-muted-foreground mb-4">
-                      Added on {new Date(car.addedDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
                     </div>
 
                     {/* Actions */}
