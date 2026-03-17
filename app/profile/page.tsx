@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { CarCard } from "@/components/featured-cars"
@@ -23,7 +24,6 @@ import {
   Calendar,
   Car,
   Heart,
-  Settings,
   Camera,
   Edit2,
   Check,
@@ -348,10 +348,6 @@ export default function ProfilePage() {
               {/* Actions */}
               <div className="flex gap-3">
                 <EditProfileDialog user={user} onSaved={setUser} />
-                <Button variant="outline" className="border-border">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
               </div>
             </div>
           </div>
@@ -418,8 +414,15 @@ export default function ProfilePage() {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-16 text-muted-foreground">
-                  You haven&apos;t listed any cars yet.
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+                    <Car className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No cars listed yet</h3>
+                  <p className="text-muted-foreground mb-4">Share your car and start earning</p>
+                  <Link href="/list-your-car">
+                    <Button className="bg-primary text-primary-foreground">List Your Car</Button>
+                  </Link>
                 </div>
               )}
             </TabsContent>
@@ -435,9 +438,9 @@ export default function ProfilePage() {
                 <p className="text-muted-foreground mb-4">
                   Start exploring and save cars you love
                 </p>
-                <Button className="bg-primary text-primary-foreground">
-                  Browse Cars
-                </Button>
+                <Link href="/cars">
+                  <Button className="bg-primary text-primary-foreground">Browse Cars</Button>
+                </Link>
               </div>
             </TabsContent>
           </Tabs>
