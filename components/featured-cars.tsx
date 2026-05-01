@@ -32,6 +32,7 @@ function mapCarFromApi(car: any) {
         : "",
     },
     likes: car.likes?.length ?? 0,
+    likesIds: car.likes ?? [],
   }
 }
 
@@ -49,24 +50,31 @@ interface Car {
   horsepower: number
   owner: { name: string; avatar: string }
   likes: number
+  likesIds?: string[]
 }
 
 interface CarCardProps {
   car: Car
-  onLike?: (carId: string) => void
-  isLiked?: boolean
 }
 
-export function CarCard({ car, onLike, isLiked = false }: CarCardProps) {
-  const [liked, setLiked] = useState(isLiked)
+export function CarCard({ car }: CarCardProps) {
+  const userId = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("user") || "null")?._id
+    : null
+  const [liked, setLiked] = useState(() => !!(userId && car.likesIds?.includes(userId)))
   const [likesCount, setLikesCount] = useState(car.likes)
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    const token = localStorage.getItem("accessToken")
+    if (!token) return
     setLiked(!liked)
     setLikesCount(liked ? likesCount - 1 : likesCount + 1)
-    onLike?.(car.id)
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
   }
 
   return (
