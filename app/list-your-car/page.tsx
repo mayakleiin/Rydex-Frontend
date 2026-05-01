@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
@@ -67,6 +67,12 @@ type Step = 1 | 2 | 3 | 4
 export default function ListYourCarPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>(1)
+
+  useEffect(() => {
+    if (!localStorage.getItem("accessToken")) {
+      router.replace("/login")
+    }
+  }, [])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [imageFiles, setImageFiles] = useState<File[]>([])
@@ -189,7 +195,7 @@ export default function ListYourCarPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation isAuthenticated />
+      <Navigation />
       <main className="pt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Header */}

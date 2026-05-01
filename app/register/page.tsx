@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +17,6 @@ const passwordRequirements = [
 ]
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -80,7 +78,7 @@ export default function RegisterPage() {
       localStorage.setItem("accessToken", data.accessToken)
       localStorage.setItem("refreshToken", data.refreshToken)
       localStorage.setItem("user", JSON.stringify(data.user))
-      router.push("/")
+      window.location.href = "/"
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -91,6 +89,8 @@ export default function RegisterPage() {
   const handleOAuthLogin = (provider: string) => {
     if (provider === "google") {
       window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`
+    } else if (provider === "facebook") {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/facebook`
     }
   }
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { CarCard } from "@/components/featured-cars"
@@ -23,7 +24,6 @@ import {
   Calendar,
   Car,
   Heart,
-  Settings,
   Camera,
   Edit2,
   Check,
@@ -55,6 +55,7 @@ function mapCarFromApi(car: any) {
       avatar: getAvatarUrl(car.owner?.profileImage),
     },
     likes: car.likes?.length ?? 0,
+    likesIds: car.likes ?? [],
   }
 }
 
@@ -262,23 +263,31 @@ export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [userCars, setUserCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
   const [rawCars, setRawCars] = useState<any[]>([])
+  const [favoriteCars, setFavoriteCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("user") || "null")
-    if (!stored) return
+    if (!stored) { window.location.href = "/login"; return }
     setUser(stored)
 
     const fetchData = async () => {
       try {
-        const [userRes, carsRes] = await Promise.all([
+        const [userRes, carsRes, allCarsRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${stored._id}`),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${stored._id}/cars?limit=50`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=200`),
         ])
-        const [userData, carsData] = await Promise.all([userRes.json(), carsRes.json()])
+        const [userData, carsData, allCarsData] = await Promise.all([
+          userRes.json(), carsRes.json(), allCarsRes.json(),
+        ])
         setUser(userData)
         setRawCars(carsData.cars)
         setUserCars(carsData.cars.map(mapCarFromApi))
+        const liked = (allCarsData.cars ?? [])
+          .filter((c: any) => c.likes?.includes(stored._id))
+          .map(mapCarFromApi)
+        setFavoriteCars(liked)
       } finally {
         setIsLoading(false)
       }
@@ -348,10 +357,6 @@ export default function ProfilePage() {
               {/* Actions */}
               <div className="flex gap-3">
                 <EditProfileDialog user={user} onSaved={setUser} />
-                <Button variant="outline" className="border-border">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
               </div>
             </div>
           </div>
@@ -418,27 +423,38 @@ export default function ProfilePage() {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-16 text-muted-foreground">
-                  You haven&apos;t listed any cars yet.
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+                    <Car className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No cars listed yet</h3>
+                  <p className="text-muted-foreground mb-4">Share your car and start earning</p>
+                  <Link href="/list-your-car">
+                    <Button className="bg-primary text-primary-foreground">List Your Car</Button>
+                  </Link>
                 </div>
               )}
             </TabsContent>
 
             <TabsContent value="favorites">
-              <div className="text-center py-16">
-                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-8 h-8 text-muted-foreground" />
+              {favoriteCars.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {favoriteCars.map((car) => (
+                    <CarCard key={car.id} car={car} />
+                  ))}
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  No favorites yet
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Start exploring and save cars you love
-                </p>
-                <Button className="bg-primary text-primary-foreground">
-                  Browse Cars
-                </Button>
-              </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+                    <Heart className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No favorites yet</h3>
+                  <p className="text-muted-foreground mb-4">Start exploring and save cars you love</p>
+                  <Link href="/cars">
+                    <Button className="bg-primary text-primary-foreground">Browse Cars</Button>
+                  </Link>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

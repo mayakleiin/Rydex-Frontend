@@ -43,6 +43,7 @@ function mapCarFromApi(car: any) {
       avatar: car.owner?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
     },
     likes: car.likes?.length ?? 0,
+    likesIds: car.likes ?? [],
   }
 }
 
