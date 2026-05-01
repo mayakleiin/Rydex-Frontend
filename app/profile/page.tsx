@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
@@ -265,6 +266,8 @@ export default function ProfilePage() {
   const [rawCars, setRawCars] = useState<any[]>([])
   const [favoriteCars, setFavoriteCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const searchParams = useSearchParams()
+  const activeTab = searchParams.get("tab") || "cars"
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("user") || "null")
@@ -384,7 +387,7 @@ export default function ProfilePage() {
 
         {/* Tabs Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Tabs defaultValue="cars" className="w-full">
+          <Tabs value={activeTab} onValueChange={(tab) => window.history.replaceState(null, "", `?tab=${tab}`)} className="w-full">
             <TabsList className="bg-card border border-border mb-8">
               <TabsTrigger value="cars" className="gap-2">
                 <Car className="w-4 h-4" />
