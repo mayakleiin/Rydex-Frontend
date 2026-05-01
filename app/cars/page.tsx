@@ -1,29 +1,37 @@
-"use client"
+"use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { CarCard } from "@/components/featured-cars"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { Navigation } from "@/components/navigation";
+import { Footer } from "@/components/footer";
+import { CarCard } from "@/components/featured-cars";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet"
-import { Search, SlidersHorizontal, X, MapPin, Grid3X3, List, Loader2 } from "lucide-react"
+} from "@/components/ui/sheet";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  MapPin,
+  Grid3X3,
+  List,
+  Loader2,
+} from "lucide-react";
 
 function mapCarFromApi(car: any) {
   return {
@@ -33,18 +41,23 @@ function mapCarFromApi(car: any) {
     price: car.pricePerDay,
     rating: 0,
     reviews: car.commentsCount ?? 0,
-    image: car.image || "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    image:
+      car.image ||
+      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
+    category: car.category,
     fuelType: car.fuelType ?? "Gasoline",
     seats: car.seats ?? 4,
     horsepower: 0,
     owner: {
       name: car.owner?.username ?? "Owner",
-      avatar: car.owner?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
+      avatar:
+        car.owner?.profileImage ||
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
-  }
+  };
 }
 
 const categories = [
@@ -54,10 +67,10 @@ const categories = [
   { value: "suv", label: "SUVs" },
   { value: "electric", label: "Electric" },
   { value: "exotic", label: "Exotic" },
-]
+];
 
-const fuelTypes = ["Premium", "Electric", "Diesel", "Hybrid"]
-const seatingOptions = [2, 4, 5, 7]
+const fuelTypes = ["Premium", "Electric", "Diesel", "Hybrid"];
+const seatingOptions = [2, 4, 5, 7];
 
 const sortOptions = [
   { value: "recommended", label: "Recommended" },
@@ -65,7 +78,7 @@ const sortOptions = [
   { value: "price-high", label: "Price: High to Low" },
   { value: "rating", label: "Highest Rated" },
   { value: "newest", label: "Newest First" },
-]
+];
 
 function FilterSidebar({
   priceRange,
@@ -76,29 +89,29 @@ function FilterSidebar({
   setSelectedSeats,
   onReset,
 }: {
-  priceRange: number[]
-  setPriceRange: (value: number[]) => void
-  selectedFuelTypes: string[]
-  setSelectedFuelTypes: (value: string[]) => void
-  selectedSeats: number[]
-  setSelectedSeats: (value: number[]) => void
-  onReset: () => void
+  priceRange: number[];
+  setPriceRange: (value: number[]) => void;
+  selectedFuelTypes: string[];
+  setSelectedFuelTypes: (value: string[]) => void;
+  selectedSeats: number[];
+  setSelectedSeats: (value: number[]) => void;
+  onReset: () => void;
 }) {
   const toggleFuelType = (fuel: string) => {
     if (selectedFuelTypes.includes(fuel)) {
-      setSelectedFuelTypes(selectedFuelTypes.filter((f) => f !== fuel))
+      setSelectedFuelTypes(selectedFuelTypes.filter((f) => f !== fuel));
     } else {
-      setSelectedFuelTypes([...selectedFuelTypes, fuel])
+      setSelectedFuelTypes([...selectedFuelTypes, fuel]);
     }
-  }
+  };
 
   const toggleSeats = (seats: number) => {
     if (selectedSeats.includes(seats)) {
-      setSelectedSeats(selectedSeats.filter((s) => s !== seats))
+      setSelectedSeats(selectedSeats.filter((s) => s !== seats));
     } else {
-      setSelectedSeats([...selectedSeats, seats])
+      setSelectedSeats([...selectedSeats, seats]);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -123,7 +136,9 @@ function FilterSidebar({
 
       {/* Fuel Type */}
       <div>
-        <Label className="text-foreground font-medium mb-4 block">Fuel Type</Label>
+        <Label className="text-foreground font-medium mb-4 block">
+          Fuel Type
+        </Label>
         <div className="space-y-3">
           {fuelTypes.map((fuel) => (
             <div key={fuel} className="flex items-center gap-2">
@@ -145,7 +160,9 @@ function FilterSidebar({
 
       {/* Seating */}
       <div>
-        <Label className="text-foreground font-medium mb-4 block">Seating</Label>
+        <Label className="text-foreground font-medium mb-4 block">
+          Seating
+        </Label>
         <div className="flex flex-wrap gap-2">
           {seatingOptions.map((seats) => (
             <Button
@@ -174,140 +191,166 @@ function FilterSidebar({
         Reset Filters
       </Button>
     </div>
-  )
+  );
 }
 
 export default function CarsPage() {
-  const [allCars, setAllCars] = useState<ReturnType<typeof mapCarFromApi>[]>([])
-  const [isLoadingCars, setIsLoadingCars] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [location, setLocation] = useState("")
-  const [category, setCategory] = useState("all")
-  const [sortBy, setSortBy] = useState("recommended")
-  const [priceRange, setPriceRange] = useState([0, 1000])
-  const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([])
-  const [selectedSeats, setSelectedSeats] = useState<number[]>([])
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const LIMIT = 12
+  const [allCars, setAllCars] = useState<ReturnType<typeof mapCarFromApi>[]>(
+    [],
+  );
+  const [isLoadingCars, setIsLoadingCars] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [location, setLocation] = useState("");
+  const [category, setCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("recommended");
+  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const LIMIT = 12;
 
   const loadCars = useCallback(async (pageNum: number, replace: boolean) => {
-    if (pageNum === 1) setIsLoadingCars(true)
-    else setIsLoadingMore(true)
+    if (pageNum === 1) setIsLoadingCars(true);
+    else setIsLoadingMore(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?page=${pageNum}&limit=${LIMIT}`)
-      const data = await res.json()
-      const mapped = data.cars.map(mapCarFromApi)
-      setAllCars((prev) => replace ? mapped : [...prev, ...mapped])
-      setHasMore(pageNum < data.totalPages)
-      setPage(pageNum)
+      const params = new URLSearchParams();
+      params.append("page", pageNum.toString());
+      params.append("limit", LIMIT.toString());
+      if (category !== "all") params.append("category", category);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/cars?${params}`,
+      );
+      const data = await res.json();
+      const mapped = data.cars.map(mapCarFromApi);
+      setAllCars((prev) => (replace ? mapped : [...prev, ...mapped]));
+      setHasMore(pageNum < data.totalPages);
+      setPage(pageNum);
     } catch {
       // keep existing on error
     } finally {
-      setIsLoadingCars(false)
-      setIsLoadingMore(false)
+      setIsLoadingCars(false);
+      setIsLoadingMore(false);
     }
-  }, [])
+  }, [category]);
 
   useEffect(() => {
-    loadCars(1, true)
-  }, [loadCars])
+    loadCars(1, true);
+  }, [loadCars]);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoadingCars) {
-          loadCars(page + 1, false)
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !isLoadingMore &&
+          !isLoadingCars
+        ) {
+          loadCars(page + 1, false);
         }
       },
-      { threshold: 0.1 }
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasMore, isLoadingMore, isLoadingCars, page, loadCars])
+      { threshold: 0.1 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, isLoadingCars, page, loadCars]);
 
   const resetFilters = () => {
-    setPriceRange([0, 1000])
-    setSelectedFuelTypes([])
-    setSelectedSeats([])
-    setCategory("all")
-    setSearchQuery("")
-    setLocation("")
-  }
+    setPriceRange([0, 1000]);
+    setSelectedFuelTypes([]);
+    setSelectedSeats([]);
+    setCategory("all");
+    setSearchQuery("");
+    setLocation("");
+  };
 
   const filteredCars = useMemo(() => {
-    let filtered = allCars
+    let filtered = allCars;
 
     // Search query
     if (searchQuery) {
       filtered = filtered.filter(
         (car) =>
           car.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          car.location.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+          car.location.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
     }
 
     // Location
     if (location) {
       filtered = filtered.filter((car) =>
-        car.location.toLowerCase().includes(location.toLowerCase())
-      )
+        car.location.toLowerCase().includes(location.toLowerCase()),
+      );
     }
 
     // Category
     if (category !== "all") {
       filtered = filtered.filter((car) => {
-        const carCategory = (car as typeof allCars[0] & { category?: string }).category
-        return carCategory === category
-      })
+        const carCategory = (car as (typeof allCars)[0] & { category?: string })
+          .category;
+        return carCategory === category;
+      });
     }
 
     // Price range
     filtered = filtered.filter(
-      (car) => car.price >= priceRange[0] && car.price <= priceRange[1]
-    )
+      (car) => car.price >= priceRange[0] && car.price <= priceRange[1],
+    );
 
     // Fuel types
     if (selectedFuelTypes.length > 0) {
-      filtered = filtered.filter((car) => selectedFuelTypes.includes(car.fuelType))
+      filtered = filtered.filter((car) =>
+        selectedFuelTypes.includes(car.fuelType),
+      );
     }
 
     // Seating
     if (selectedSeats.length > 0) {
       filtered = filtered.filter((car) =>
-        selectedSeats.some((seats) => car.seats >= seats)
-      )
+        selectedSeats.some((seats) => car.seats >= seats),
+      );
     }
 
     // Sort
     switch (sortBy) {
       case "price-low":
-        filtered = [...filtered].sort((a, b) => a.price - b.price)
-        break
+        filtered = [...filtered].sort((a, b) => a.price - b.price);
+        break;
       case "price-high":
-        filtered = [...filtered].sort((a, b) => b.price - a.price)
-        break
+        filtered = [...filtered].sort((a, b) => b.price - a.price);
+        break;
       case "rating":
-        filtered = [...filtered].sort((a, b) => b.rating - a.rating)
-        break
+        filtered = [...filtered].sort((a, b) => b.rating - a.rating);
+        break;
       case "newest":
-        filtered = [...filtered].sort((a, b) => b.year - a.year)
-        break
+        filtered = [...filtered].sort((a, b) => b.year - a.year);
+        break;
     }
 
-    return filtered
-  }, [searchQuery, location, category, sortBy, priceRange, selectedFuelTypes, selectedSeats])
+    return filtered;
+  }, [
+    allCars,
+    searchQuery,
+    location,
+    category,
+    sortBy,
+    priceRange,
+    selectedFuelTypes,
+    selectedSeats,
+  ]);
 
   const activeFiltersCount =
     (priceRange[0] > 0 || priceRange[1] < 1000 ? 1 : 0) +
     selectedFuelTypes.length +
     selectedSeats.length +
-    (category !== "all" ? 1 : 0)
+    (category !== "all" ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -370,7 +413,9 @@ export default function CarsPage() {
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 shrink-0">
               <div className="sticky top-24 bg-card border border-border rounded-xl p-6">
-                <h2 className="font-serif font-medium italic text-foreground mb-6">Filters</h2>
+                <h2 className="font-serif font-medium italic text-foreground mb-6">
+                  Filters
+                </h2>
                 <FilterSidebar
                   priceRange={priceRange}
                   setPriceRange={setPriceRange}
@@ -389,8 +434,14 @@ export default function CarsPage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <div>
                   <h1 className="font-serif text-2xl font-medium italic text-foreground">
-                    {filteredCars.length} <span className="text-primary">Cars</span> Available
-                    {hasMore && <span className="text-sm font-normal text-muted-foreground"> (loading more...)</span>}
+                    {filteredCars.length}{" "}
+                    <span className="text-primary">Cars</span> Available
+                    {hasMore && (
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {" "}
+                        (loading more...)
+                      </span>
+                    )}
                   </h1>
                   {location && (
                     <p className="text-muted-foreground">in {location}</p>
@@ -401,7 +452,10 @@ export default function CarsPage() {
                   {/* Mobile Filter Button */}
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden border-border">
+                      <Button
+                        variant="outline"
+                        className="lg:hidden border-border"
+                      >
                         <SlidersHorizontal className="w-4 h-4 mr-2" />
                         Filters
                         {activeFiltersCount > 0 && (
@@ -497,7 +551,9 @@ export default function CarsPage() {
                       size="sm"
                       className="gap-1"
                       onClick={() =>
-                        setSelectedFuelTypes(selectedFuelTypes.filter((f) => f !== fuel))
+                        setSelectedFuelTypes(
+                          selectedFuelTypes.filter((f) => f !== fuel),
+                        )
                       }
                     >
                       {fuel}
@@ -511,7 +567,9 @@ export default function CarsPage() {
                       size="sm"
                       className="gap-1"
                       onClick={() =>
-                        setSelectedSeats(selectedSeats.filter((s) => s !== seats))
+                        setSelectedSeats(
+                          selectedSeats.filter((s) => s !== seats),
+                        )
                       }
                     >
                       {seats}+ seats
@@ -581,5 +639,5 @@ export default function CarsPage() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }

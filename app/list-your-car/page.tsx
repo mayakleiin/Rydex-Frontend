@@ -164,6 +164,7 @@ export default function ListYourCarPage() {
       body.append("description", formData.description || "No description provided")
       body.append("location", formData.location)
       body.append("pricePerDay", formData.pricePerDay)
+      if (formData.category) body.append("category", formData.category)
       if (formData.fuelType) body.append("fuelType", formData.fuelType)
       if (formData.transmission) body.append("transmission", formData.transmission)
       if (formData.seats) body.append("seats", formData.seats)
