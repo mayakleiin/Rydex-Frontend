@@ -50,9 +50,9 @@ const searchCarsWithAI = async (query: string): Promise<{ message: string; resul
   }, index: number) => ({
     id: car._id,
     name: car.title,
-    image: car.images?.[0] ?? car.image ?? "",
+    image: car.images?.[0] || car.image || "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     price: car.pricePerDay,
-    location: car.location ?? "",
+    location: car.location || "Location not specified",
     match: Math.max(95 - index * 5, 70),
     reason: car.description ?? "",
   }))
@@ -228,14 +228,16 @@ export function AISearch({ isOpen, onClose }: AISearchProps) {
                       <Card className="bg-muted/50 border-border hover:border-primary/50 transition-colors cursor-pointer">
                         <CardContent className="p-3">
                           <div className="flex gap-4">
-                            <div className="relative w-24 h-20 rounded-lg overflow-hidden shrink-0">
-                              <Image
-                                src={car.image}
-                                alt={car.name}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
+                            {car.image && (
+                              <div className="relative w-24 h-20 rounded-lg overflow-hidden shrink-0">
+                                <Image
+                                  src={car.image}
+                                  alt={car.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2 mb-1">
                                 <h3 className="font-semibold text-foreground truncate">
