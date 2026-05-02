@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authFetch } from "@/lib/authFetch";
 import {
   Dialog,
   DialogContent,
@@ -310,15 +311,13 @@ function EditCarDialog({
         body.append("image", fileRef.current.files[0]);
       }
 
-      const res = await fetch(
+      const res = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/cars/${car._id}`,
         {
           method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
           body,
         },
       );
-
       const data = await res.json();
 
       if (!res.ok) {

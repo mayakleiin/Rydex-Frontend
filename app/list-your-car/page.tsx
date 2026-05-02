@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authFetch } from "@/lib/authFetch";
 import {
   Select,
   SelectContent,
@@ -299,22 +300,14 @@ export default function ListYourCarPage() {
       if (Object.keys(formData.rules).length > 0)
         body.append("rules", JSON.stringify(formData.rules));
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
+      const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body,
       });
-
       const contentType = res.headers.get("content-type");
       const data = contentType?.includes("application/json")
         ? await res.json()
         : { message: await res.text() };
-
-      if (res.status === 401) {
-        localStorage.removeItem("accessToken");
-        router.push("/login");
-        return;
-      }
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to create listing");
