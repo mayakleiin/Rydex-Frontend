@@ -36,7 +36,7 @@ import {
 function mapCarFromApi(car: any) {
   return {
     id: car._id,
-    name: `${car.make} ${car.model}`,
+    name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
     rating: 0,
@@ -45,7 +45,6 @@ function mapCarFromApi(car: any) {
       car.image ||
       "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
-    category: car.category,
     fuelType: car.fuelType ?? "Gasoline",
     seats: car.seats ?? 4,
     horsepower: 0,
@@ -59,15 +58,6 @@ function mapCarFromApi(car: any) {
     likesIds: car.likes ?? [],
   };
 }
-
-const categories = [
-  { value: "all", label: "All Categories" },
-  { value: "luxury", label: "Luxury" },
-  { value: "sports", label: "Sports Cars" },
-  { value: "suv", label: "SUVs" },
-  { value: "electric", label: "Electric" },
-  { value: "exotic", label: "Exotic" },
-];
 
 const fuelTypes = ["Premium", "Electric", "Diesel", "Hybrid"];
 const seatingOptions = [2, 4, 5, 7];
@@ -204,7 +194,6 @@ export default function CarsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
-  const [category, setCategory] = useState("all");
   const [sortBy, setSortBy] = useState("recommended");
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([]);
@@ -220,7 +209,6 @@ export default function CarsPage() {
       const params = new URLSearchParams();
       params.append("page", pageNum.toString());
       params.append("limit", LIMIT.toString());
-      if (category !== "all") params.append("category", category);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/cars?${params}`,
@@ -236,7 +224,7 @@ export default function CarsPage() {
       setIsLoadingCars(false);
       setIsLoadingMore(false);
     }
-  }, [category]);
+  }, []);
 
   useEffect(() => {
     loadCars(1, true);
@@ -266,7 +254,6 @@ export default function CarsPage() {
     setPriceRange([0, 1000]);
     setSelectedFuelTypes([]);
     setSelectedSeats([]);
-    setCategory("all");
     setSearchQuery("");
     setLocation("");
   };
@@ -288,15 +275,6 @@ export default function CarsPage() {
       filtered = filtered.filter((car) =>
         car.location.toLowerCase().includes(location.toLowerCase()),
       );
-    }
-
-    // Category
-    if (category !== "all") {
-      filtered = filtered.filter((car) => {
-        const carCategory = (car as (typeof allCars)[0] & { category?: string })
-          .category;
-        return carCategory === category;
-      });
     }
 
     // Price range
@@ -339,7 +317,6 @@ export default function CarsPage() {
     allCars,
     searchQuery,
     location,
-    category,
     sortBy,
     priceRange,
     selectedFuelTypes,
@@ -349,8 +326,7 @@ export default function CarsPage() {
   const activeFiltersCount =
     (priceRange[0] > 0 || priceRange[1] < 1000 ? 1 : 0) +
     selectedFuelTypes.length +
-    selectedSeats.length +
-    (category !== "all" ? 1 : 0);
+    selectedSeats.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -383,20 +359,6 @@ export default function CarsPage() {
                   className="pl-10 h-12 bg-input border-border"
                 />
               </div>
-
-              {/* Category Select */}
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-12 w-full lg:w-48 bg-input border-border">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
 
               {/* Search Button */}
               <Button className="h-12 px-8 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -522,17 +484,6 @@ export default function CarsPage() {
               {/* Active Filters */}
               {activeFiltersCount > 0 && (
                 <div className="flex flex-wrap items-center gap-2 mb-6">
-                  {category !== "all" && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => setCategory("all")}
-                    >
-                      {categories.find((c) => c.value === category)?.label}
-                      <X className="w-3 h-3" />
-                    </Button>
-                  )}
                   {(priceRange[0] > 0 || priceRange[1] < 1000) && (
                     <Button
                       variant="secondary"
