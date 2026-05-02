@@ -31,6 +31,7 @@ import {
   Check,
   Loader2,
   Trash2,
+  Bell,
 } from "lucide-react";
 import {
   Select,
@@ -825,6 +826,24 @@ function EditProfileDialog({
   );
 }
 
+type BookingRequest = {
+  _id: string;
+  status: "pending" | "approved" | "rejected";
+  pickupDate: string;
+  returnDate: string;
+  car: {
+    _id?: string;
+    brand?: string;
+    model?: string;
+    title?: string;
+  };
+  renter: {
+    username?: string;
+    email?: string;
+    profileImage?: string;
+  };
+};
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [userCars, setUserCars] = useState<ReturnType<typeof mapCarFromApi>[]>(
@@ -834,6 +853,8 @@ export default function ProfilePage() {
   const [favoriteCars, setFavoriteCars] = useState<
     ReturnType<typeof mapCarFromApi>[]
   >([]);
+  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
+  const [bookingMessage, setBookingMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || "cars";
@@ -848,17 +869,19 @@ export default function ProfilePage() {
 
     const fetchData = async () => {
       try {
-        const [userRes, carsRes, allCarsRes] = await Promise.all([
+        const [userRes, carsRes, allCarsRes, bookingsRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${stored._id}`),
           fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/users/${stored._id}/cars?limit=50`,
           ),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=200`),
+          authFetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/owner`),
         ]);
-        const [userData, carsData, allCarsData] = await Promise.all([
+        const [userData, carsData, allCarsData, bookingsData] = await Promise.all([
           userRes.json(),
           carsRes.json(),
           allCarsRes.json(),
+          bookingsRes.json(),
         ]);
         setUser(userData);
         setRawCars(carsData.cars);
@@ -867,6 +890,13 @@ export default function ProfilePage() {
           .filter((c: any) => c.likes?.includes(stored._id))
           .map(mapCarFromApi);
         setFavoriteCars(liked);
+      const uniqueBookings = Array.from(
+  new Map(
+    (Array.isArray(bookingsData) ? bookingsData : []).map((b: any) => [b._id, b])
+  ).values()
+);
+
+setBookingRequests(uniqueBookings);
       } finally {
         setIsLoading(false);
       }
@@ -897,6 +927,38 @@ export default function ProfilePage() {
     if (res.ok) {
       setRawCars((prev) => prev.filter((c) => c._id !== carId));
       setUserCars((prev) => prev.filter((c) => c.id !== carId));
+    }
+  };
+
+  const handleBookingStatus = async (
+    bookingId: string,
+    status: "approved" | "rejected",
+  ) => {
+    try {
+      const res = await authFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/bookings/${bookingId}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update booking");
+      }
+
+      setBookingRequests((prev) =>
+        prev.map((booking) =>
+          booking._id === bookingId ? { ...booking, status } : booking,
+        ),
+      );
+
+      setBookingMessage(`Booking ${status}`);
+    } catch (err: any) {
+      setBookingMessage(err.message || "Failed to update booking");
     }
   };
 
@@ -1003,6 +1065,10 @@ export default function ProfilePage() {
                 <Heart className="w-4 h-4" />
                 Favorites
               </TabsTrigger>
+              <TabsTrigger value="bookings" className="gap-2">
+                <Bell className="w-4 h-4" />
+                Requests ({bookingRequests.filter((b) => b.status === "pending").length})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="cars">
@@ -1077,6 +1143,79 @@ export default function ProfilePage() {
                       Browse Cars
                     </Button>
                   </Link>
+                </div>
+              )}
+            </TabsContent>
+
+
+            <TabsContent value="bookings">
+              {bookingMessage && (
+                <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm">
+                  {bookingMessage}
+                </div>
+              )}
+
+              {bookingRequests.length > 0 ? (
+                <div className="space-y-4">
+                  {bookingRequests.map((booking) => (
+                    <Card key={booking._id} className="bg-card border-border">
+                      <CardContent className="p-5">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-foreground">
+                              {booking.car?.brand || booking.car?.title} {booking.car?.model}
+                            </h3>
+
+                            <p className="text-muted-foreground">
+                              Requested by: {booking.renter?.username || booking.renter?.email || "User"}
+                            </p>
+
+                            <p className="text-muted-foreground">
+                              From: {new Date(booking.pickupDate).toLocaleDateString()}
+                            </p>
+
+                            <p className="text-muted-foreground">
+                              To: {new Date(booking.returnDate).toLocaleDateString()}
+                            </p>
+
+                            <p className="mt-2">
+                              Status: <span className="font-semibold text-primary">{booking.status}</span>
+                            </p>
+                          </div>
+
+                          {booking.status === "pending" && (
+                            <div className="flex gap-2">
+                              <Button
+                                className="bg-primary text-primary-foreground"
+                                onClick={() => handleBookingStatus(booking._id, "approved")}
+                              >
+                                Approve
+                              </Button>
+
+                              <Button
+                                variant="destructive"
+                                onClick={() => handleBookingStatus(booking._id, "rejected")}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+                    <Bell className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    No booking requests yet
+                  </h3>
+                  <p className="text-muted-foreground">
+                    When someone wants to rent your car, the request will appear here.
+                  </p>
                 </div>
               )}
             </TabsContent>

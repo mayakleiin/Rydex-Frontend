@@ -282,6 +282,7 @@ export default function CarDetailPage() {
   });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingMessage, setBookingMessage] = useState("");
+  const [bookingSent, setBookingSent] = useState(false)
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${carId}`)
@@ -313,21 +314,49 @@ export default function CarDetailPage() {
   };
 
   const handleBook = async () => {
+    if (bookingLoading || bookingSent) return
   setBookingMessage("")
 
   if (!dateRange.from || !dateRange.to) {
     setBookingMessage("Please select pickup and return dates")
     return
   }
-
   const token = localStorage.getItem("accessToken")
 
-  if (!token) {
-    setBookingMessage("Please login before booking")
-    return
+if (!token) {
+  setBookingMessage("Please login before booking")
+  return
+}
+
+setBookingLoading(true)
+
+try {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      carId: carId,
+      pickupDate: dateRange.from.toISOString(),
+      returnDate: dateRange.to.toISOString(),
+    }),
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data.message || "Booking failed")
   }
 
-  setBookingLoading(true)
+  setBookingMessage("Your booking request is waiting for owner approval")
+  setBookingSent(true)
+} catch (err: any) {
+  setBookingMessage(err.message || "Booking failed")
+} finally {
+  setBookingLoading(false)
+}
 
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
@@ -709,8 +738,8 @@ export default function CarDetailPage() {
                     {/* Book Button */}
                     <Button
   className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 text-lg"
-  disabled={!dateRange.from || !dateRange.to || bookingLoading}
-  onClick={handleBook}
+disabled={!dateRange.from || !dateRange.to || bookingLoading || bookingSent}
+onClick={handleBook}
 >
   {bookingLoading
     ? "Sending request..."
