@@ -55,9 +55,10 @@ interface Car {
 
 interface CarCardProps {
   car: Car;
+  onLikeChange?: (carId: string, liked: boolean) => void;
 }
 
-export function CarCard({ car }: CarCardProps) {
+export function CarCard({ car, onLikeChange }: CarCardProps) {
   const userId =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("user") || "null")?._id
@@ -72,8 +73,10 @@ export function CarCard({ car }: CarCardProps) {
     e.stopPropagation();
     const token = localStorage.getItem("accessToken");
     if (!token) return;
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikesCount(newLiked ? likesCount + 1 : likesCount - 1);
+    onLikeChange?.(car.id, newLiked);
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
