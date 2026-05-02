@@ -45,9 +45,12 @@ function mapCarFromApi(car: any) {
       car.image ||
       "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
-    fuelType: car.fuelType ?? "Gasoline",
+    fuelType: car.fuelType
+      ? car.fuelType.charAt(0).toUpperCase() + car.fuelType.slice(1)
+      : "Gasoline",
     seats: car.seats ?? 4,
     horsepower: 0,
+    transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
       avatar:
@@ -59,7 +62,8 @@ function mapCarFromApi(car: any) {
   };
 }
 
-const fuelTypes = ["Premium", "Electric", "Diesel", "Hybrid"];
+const fuelTypes = ["Gasoline", "Diesel", "Electric", "Hybrid"];
+const transmissionTypes = ["Manual", "Automatic", "CVT", "Robotic", "DCT"];
 const seatingOptions = [2, 4, 5, 7];
 
 const sortOptions = [
@@ -75,6 +79,8 @@ function FilterSidebar({
   setPriceRange,
   selectedFuelTypes,
   setSelectedFuelTypes,
+  selectedTransmissions,
+  setSelectedTransmissions,
   selectedSeats,
   setSelectedSeats,
   onReset,
@@ -83,6 +89,8 @@ function FilterSidebar({
   setPriceRange: (value: number[]) => void;
   selectedFuelTypes: string[];
   setSelectedFuelTypes: (value: string[]) => void;
+  selectedTransmissions: string[];
+  setSelectedTransmissions: (value: string[]) => void;
   selectedSeats: number[];
   setSelectedSeats: (value: number[]) => void;
   onReset: () => void;
@@ -92,6 +100,16 @@ function FilterSidebar({
       setSelectedFuelTypes(selectedFuelTypes.filter((f) => f !== fuel));
     } else {
       setSelectedFuelTypes([...selectedFuelTypes, fuel]);
+    }
+  };
+
+  const toggleTransmission = (trans: string) => {
+    if (selectedTransmissions.includes(trans)) {
+      setSelectedTransmissions(
+        selectedTransmissions.filter((t) => t !== trans),
+      );
+    } else {
+      setSelectedTransmissions([...selectedTransmissions, trans]);
     }
   };
 
@@ -148,6 +166,30 @@ function FilterSidebar({
         </div>
       </div>
 
+      {/* Transmission */}
+      <div>
+        <Label className="text-foreground font-medium mb-4 block">
+          Transmission
+        </Label>
+        <div className="space-y-3">
+          {transmissionTypes.map((trans) => (
+            <div key={trans} className="flex items-center gap-2">
+              <Checkbox
+                id={`trans-${trans}`}
+                checked={selectedTransmissions.includes(trans)}
+                onCheckedChange={() => toggleTransmission(trans)}
+              />
+              <label
+                htmlFor={`trans-${trans}`}
+                className="text-sm text-muted-foreground cursor-pointer"
+              >
+                {trans}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Seating */}
       <div>
         <Label className="text-foreground font-medium mb-4 block">
@@ -197,6 +239,9 @@ export default function CarsPage() {
   const [sortBy, setSortBy] = useState("recommended");
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([]);
+  const [selectedTransmissions, setSelectedTransmissions] = useState<string[]>(
+    [],
+  );
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -253,6 +298,7 @@ export default function CarsPage() {
   const resetFilters = () => {
     setPriceRange([0, 1000]);
     setSelectedFuelTypes([]);
+    setSelectedTransmissions([]);
     setSelectedSeats([]);
     setSearchQuery("");
     setLocation("");
@@ -289,6 +335,13 @@ export default function CarsPage() {
       );
     }
 
+    // Transmission
+    if (selectedTransmissions.length > 0) {
+      filtered = filtered.filter((car) =>
+        selectedTransmissions.includes(car.transmission),
+      );
+    }
+
     // Seating
     if (selectedSeats.length > 0) {
       filtered = filtered.filter((car) =>
@@ -320,12 +373,14 @@ export default function CarsPage() {
     sortBy,
     priceRange,
     selectedFuelTypes,
+    selectedTransmissions,
     selectedSeats,
   ]);
 
   const activeFiltersCount =
     (priceRange[0] > 0 || priceRange[1] < 1000 ? 1 : 0) +
     selectedFuelTypes.length +
+    selectedTransmissions.length +
     selectedSeats.length;
 
   return (
@@ -383,6 +438,8 @@ export default function CarsPage() {
                   setPriceRange={setPriceRange}
                   selectedFuelTypes={selectedFuelTypes}
                   setSelectedFuelTypes={setSelectedFuelTypes}
+                  selectedTransmissions={selectedTransmissions}
+                  setSelectedTransmissions={setSelectedTransmissions}
                   selectedSeats={selectedSeats}
                   setSelectedSeats={setSelectedSeats}
                   onReset={resetFilters}
@@ -437,6 +494,8 @@ export default function CarsPage() {
                           setPriceRange={setPriceRange}
                           selectedFuelTypes={selectedFuelTypes}
                           setSelectedFuelTypes={setSelectedFuelTypes}
+                          selectedTransmissions={selectedTransmissions}
+                          setSelectedTransmissions={setSelectedTransmissions}
                           selectedSeats={selectedSeats}
                           setSelectedSeats={setSelectedSeats}
                           onReset={resetFilters}
@@ -508,6 +567,22 @@ export default function CarsPage() {
                       }
                     >
                       {fuel}
+                      <X className="w-3 h-3" />
+                    </Button>
+                  ))}
+                  {selectedTransmissions.map((trans) => (
+                    <Button
+                      key={trans}
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() =>
+                        setSelectedTransmissions(
+                          selectedTransmissions.filter((t) => t !== trans),
+                        )
+                      }
+                    >
+                      {trans}
                       <X className="w-3 h-3" />
                     </Button>
                   ))}

@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Navigation } from "@/components/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Navigation } from "@/components/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Car,
   Upload,
@@ -31,16 +31,33 @@ import {
   X,
   Image as ImageIcon,
   Loader2,
-} from "lucide-react"
+} from "lucide-react";
 
 const carBrands = [
-  "Audi", "BMW", "Bentley", "Cadillac", "Ferrari", "Ford", "Honda", "Jaguar",
-  "Lamborghini", "Land Rover", "Lexus", "Maserati", "McLaren", "Mercedes-Benz",
-  "Porsche", "Rolls-Royce", "Tesla", "Toyota", "Volkswagen"
-]
+  "Audi",
+  "BMW",
+  "Bentley",
+  "Cadillac",
+  "Ferrari",
+  "Ford",
+  "Honda",
+  "Jaguar",
+  "Lamborghini",
+  "Land Rover",
+  "Lexus",
+  "Maserati",
+  "McLaren",
+  "Mercedes-Benz",
+  "Porsche",
+  "Rolls-Royce",
+  "Tesla",
+  "Toyota",
+  "Volkswagen",
+  "Other",
+];
 
-const fuelTypes = ["Premium", "Regular", "Diesel", "Electric", "Hybrid"]
-const transmissionTypes = ["Automatic", "Manual", "Semi-Automatic"]
+const fuelTypes = ["Gasoline", "Diesel", "Electric", "Hybrid"];
+const transmissionTypes = ["Manual", "Automatic", "CVT", "Robotic", "DCT"];
 
 const features = [
   "Apple CarPlay / Android Auto",
@@ -59,23 +76,24 @@ const features = [
   "Keyless Entry",
   "Wireless Charging",
   "WiFi Hotspot",
-]
+];
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4;
 
 export default function ListYourCarPage() {
-  const router = useRouter()
-  const [currentStep, setCurrentStep] = useState<Step>(1)
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState<Step>(1);
 
   useEffect(() => {
     if (!localStorage.getItem("accessToken")) {
-      router.replace("/login")
+      router.replace("/login");
     }
-  }, [])
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState("")
-  const [imageFiles, setImageFiles] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [customBrand, setCustomBrand] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     // Step 1 - Basic Info
     brand: "",
@@ -85,7 +103,6 @@ export default function ListYourCarPage() {
     fuelType: "",
     transmission: "",
     seats: "",
-    horsepower: "",
     description: "",
     // Step 3 - Features & Rules
     features: [] as string[],
@@ -97,169 +114,219 @@ export default function ListYourCarPage() {
     },
     // Step 4 - Location & Pricing
     location: "",
-    address: "",
     pricePerDay: "",
-    minRentalDays: "1",
-    maxRentalDays: "30",
-  })
+  });
 
   const handleChange = (field: string, value: string | string[] | boolean) => {
     if (field.startsWith("rules.")) {
-      const ruleField = field.split(".")[1]
+      const ruleField = field.split(".")[1];
       setFormData({
         ...formData,
         rules: { ...formData.rules, [ruleField]: value },
-      })
+      });
     } else {
-      setFormData({ ...formData, [field]: value })
+      setFormData({ ...formData, [field]: value });
     }
-  }
+  };
 
   const toggleFeature = (feature: string) => {
     const newFeatures = formData.features.includes(feature)
       ? formData.features.filter((f) => f !== feature)
-      : [...formData.features, feature]
-    handleChange("features", newFeatures)
-  }
+      : [...formData.features, feature];
+    handleChange("features", newFeatures);
+  };
 
   const isStep1Complete = () => {
-    return formData.brand && formData.model && formData.year && imagePreviews.length > 0
-  }
+    const brandIsValid =
+      formData.brand && (formData.brand !== "other" || customBrand.trim());
+    return (
+      brandIsValid &&
+      formData.model &&
+      formData.year &&
+      formData.year.length === 4 &&
+      /^\d{4}$/.test(formData.year)
+    );
+  };
 
   const isStep2Complete = () => {
-    return formData.fuelType && formData.transmission && formData.seats
-  }
+    return (
+      formData.fuelType && formData.transmission && formData.description?.trim()
+    );
+  };
 
   const isStep4Complete = () => {
-    return formData.location && formData.pricePerDay
-  }
+    return (
+      formData.pricePerDay &&
+      !isNaN(Number(formData.pricePerDay)) &&
+      Number(formData.pricePerDay) > 0
+    );
+  };
 
   const getStepCompletion = (stepNum: number) => {
     switch (stepNum) {
       case 1:
-        return isStep1Complete()
+        return isStep1Complete();
       case 2:
-        return isStep2Complete()
+        return isStep2Complete();
       case 3:
-        return true // Step 3 is always complete (no required fields)
+        return true; // Step 3 is always complete (no required fields)
       case 4:
-        return isStep4Complete()
+        return isStep4Complete();
       default:
-        return false
+        return false;
     }
-  }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const newFiles = [...imageFiles, ...files].slice(0, 8)
-    setImageFiles(newFiles)
-    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)))
-  }
+    const files = Array.from(e.target.files || []);
+    const newFiles = [...imageFiles, ...files].slice(0, 8);
+    setImageFiles(newFiles);
+    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+  };
 
   const removeImage = (index: number) => {
-    const newFiles = imageFiles.filter((_, i) => i !== index)
-    setImageFiles(newFiles)
-    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)))
-  }
+    const newFiles = imageFiles.filter((_, i) => i !== index);
+    setImageFiles(newFiles);
+    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+  };
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (!formData.brand || !formData.model || !formData.year) {
-        setError("Please complete all fields: Brand, Model, and Year")
-        return
-      }
-      if (imagePreviews.length === 0) {
-        setError("Please upload at least one photo")
-        return
+      if (
+        !formData.brand ||
+        !formData.model ||
+        !formData.year ||
+        formData.year.length !== 4 ||
+        !/^\d{4}$/.test(formData.year) ||
+        (formData.brand === "other" && !customBrand.trim())
+      ) {
+        setError(
+          formData.brand === "other"
+            ? "Please enter your brand name"
+            : "Please complete all fields correctly: Brand, Model, and Year (4 digits)",
+        );
+        return;
       }
     } else if (currentStep === 2) {
-      if (!formData.fuelType || !formData.transmission || !formData.seats) {
-        setError("Please complete all fields: Fuel Type, Transmission, and Seats")
-        return
+      if (
+        !formData.fuelType ||
+        !formData.transmission ||
+        !formData.description?.trim()
+      ) {
+        setError(
+          "Please complete all fields: Fuel Type, Transmission, and Description",
+        );
+        return;
       }
     } else if (currentStep === 3) {
       // Step 3 is optional for features/rules, no required fields
     } else if (currentStep === 4) {
-      if (!formData.location || !formData.pricePerDay) {
-        setError("Please complete all fields: City and Price per Day")
-        return
+      if (
+        !formData.pricePerDay ||
+        isNaN(Number(formData.pricePerDay)) ||
+        Number(formData.pricePerDay) <= 0
+      ) {
+        setError("Please enter a valid price per day");
+        return;
       }
     }
 
-    setError("")
-    if (currentStep < 4) setCurrentStep((currentStep + 1) as Step)
-  }
+    setError("");
+    if (currentStep < 4) setCurrentStep((currentStep + 1) as Step);
+  };
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep((currentStep - 1) as Step)
-  }
+    if (currentStep > 1) setCurrentStep((currentStep - 1) as Step);
+  };
 
   const handleSubmit = async () => {
-    setError("")
+    setError("");
 
     // Final validation
     if (
       !formData.brand ||
       !formData.model ||
       !formData.year ||
+      formData.year.length !== 4 ||
+      !/^\d{4}$/.test(formData.year) ||
+      (formData.brand === "other" && !customBrand.trim()) ||
       !formData.fuelType ||
       !formData.transmission ||
-      !formData.seats ||
-      !formData.location ||
+      !formData.description?.trim() ||
       !formData.pricePerDay ||
-      !imagePreviews.length
+      isNaN(Number(formData.pricePerDay)) ||
+      Number(formData.pricePerDay) <= 0
     ) {
       setError(
-        "Please complete all required fields across all steps before submitting"
-      )
-      return
+        "Please complete all required fields across all steps before submitting",
+      );
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("accessToken")
+      const token = localStorage.getItem("accessToken");
       if (!token) {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
 
-      const body = new FormData()
-      body.append("title", `${formData.brand} ${formData.model} ${formData.year}`)
-      body.append("brand", formData.brand)
-      body.append("model", formData.model)
-      body.append("year", formData.year)
-      body.append("description", formData.description || "No description provided")
-      body.append("location", formData.location)
-      body.append("pricePerDay", formData.pricePerDay)
-      if (formData.fuelType) body.append("fuelType", formData.fuelType)
-      if (formData.transmission) body.append("transmission", formData.transmission)
-      if (formData.seats) body.append("seats", formData.seats)
-      if (imageFiles[0]) body.append("image", imageFiles[0])
+      const brandToSubmit =
+        formData.brand === "other" ? customBrand.trim() : formData.brand;
+
+      const body = new FormData();
+      body.append(
+        "title",
+        `${brandToSubmit} ${formData.model} ${formData.year}`,
+      );
+      body.append("brand", brandToSubmit);
+      body.append("model", formData.model);
+      body.append("year", formData.year);
+      body.append(
+        "description",
+        formData.description || "No description provided",
+      );
+      body.append("location", formData.location);
+      body.append("pricePerDay", formData.pricePerDay);
+      if (formData.fuelType) body.append("fuelType", formData.fuelType);
+      if (formData.transmission)
+        body.append("transmission", formData.transmission);
+      if (formData.seats) body.append("seats", formData.seats);
+      if (imageFiles[0]) body.append("image", imageFiles[0]);
+      if (formData.features.length > 0)
+        body.append("features", JSON.stringify(formData.features));
+      if (Object.keys(formData.rules).length > 0)
+        body.append("rules", JSON.stringify(formData.rules));
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body,
-      })
+      });
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || "Failed to create listing")
+      const data = await res.json();
+      if (res.status === 401) {
+        localStorage.removeItem("accessToken");
+        router.push("/login");
+        return;
+      }
+      if (!res.ok) throw new Error(data.message || "Failed to create listing");
 
-      router.push("/profile?listed=true")
+      router.push("/profile?listed=true");
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const steps = [
     { number: 1, title: "Basic Info", icon: Car },
     { number: 2, title: "Details", icon: Settings },
     { number: 3, title: "Features", icon: Check },
     { number: 4, title: "Pricing", icon: DollarSign },
-  ]
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -272,7 +339,8 @@ export default function ListYourCarPage() {
               List Your <span className="text-primary">Car</span>
             </h1>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Share your vehicle with our community and start earning. It only takes a few minutes.
+              Share your vehicle with our community and start earning. It only
+              takes a few minutes.
             </p>
           </div>
 
@@ -317,10 +385,15 @@ export default function ListYourCarPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="brand">Brand</Label>
+                      <Label htmlFor="brand">Brand *</Label>
                       <Select
                         value={formData.brand}
-                        onValueChange={(value) => handleChange("brand", value)}
+                        onValueChange={(value) => {
+                          handleChange("brand", value);
+                          if (value !== "other") {
+                            setCustomBrand("");
+                          }
+                        }}
                       >
                         <SelectTrigger className="bg-input border-border">
                           <SelectValue placeholder="Select brand" />
@@ -333,9 +406,17 @@ export default function ListYourCarPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {formData.brand === "other" && (
+                        <Input
+                          placeholder="Enter your brand name"
+                          value={customBrand}
+                          onChange={(e) => setCustomBrand(e.target.value)}
+                          className="bg-input border-border mt-2"
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="model">Model</Label>
+                      <Label htmlFor="model">Model *</Label>
                       <Input
                         id="model"
                         placeholder="e.g., 911 Carrera"
@@ -348,22 +429,26 @@ export default function ListYourCarPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="year">Year</Label>
-                      <Select
+                      <Label htmlFor="year">Year *</Label>
+                      <Input
+                        id="year"
+                        placeholder="e.g., 2020"
                         value={formData.year}
-                        onValueChange={(value) => handleChange("year", value)}
-                      >
-                        <SelectTrigger className="bg-input border-border">
-                          <SelectValue placeholder="Select year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
-                            <SelectItem key={year} value={year.toString()}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow digits and max 4 characters
+                          if (/^\d*$/.test(value) && value.length <= 4) {
+                            handleChange("year", value);
+                          }
+                        }}
+                        maxLength={4}
+                        className="bg-input border-border"
+                      />
+                      {formData.year && formData.year.length !== 4 && (
+                        <p className="text-sm text-destructive">
+                          Year must be exactly 4 digits
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -380,8 +465,15 @@ export default function ListYourCarPage() {
                     />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {imagePreviews.map((preview, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                          <img src={preview} alt={`Car ${index + 1}`} className="w-full h-full object-cover" />
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg overflow-hidden"
+                        >
+                          <img
+                            src={preview}
+                            alt={`Car ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
                           <button
                             onClick={() => removeImage(index)}
                             className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 flex items-center justify-center text-foreground hover:bg-background"
@@ -393,11 +485,15 @@ export default function ListYourCarPage() {
                       {imagePreviews.length < 8 && (
                         <button
                           type="button"
-                          onClick={() => document.getElementById("image-upload")?.click()}
+                          onClick={() =>
+                            document.getElementById("image-upload")?.click()
+                          }
                           className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary flex flex-col items-center justify-center gap-2 transition-colors"
                         >
                           <Upload className="w-8 h-8 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Add Photo</span>
+                          <span className="text-sm text-muted-foreground">
+                            Add Photo
+                          </span>
                         </button>
                       )}
                     </div>
@@ -413,10 +509,12 @@ export default function ListYourCarPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>Fuel Type</Label>
+                      <Label>Fuel Type *</Label>
                       <Select
                         value={formData.fuelType}
-                        onValueChange={(value) => handleChange("fuelType", value)}
+                        onValueChange={(value) =>
+                          handleChange("fuelType", value)
+                        }
                       >
                         <SelectTrigger className="bg-input border-border">
                           <SelectValue placeholder="Select fuel type" />
@@ -431,10 +529,12 @@ export default function ListYourCarPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Transmission</Label>
+                      <Label>Transmission *</Label>
                       <Select
                         value={formData.transmission}
-                        onValueChange={(value) => handleChange("transmission", value)}
+                        onValueChange={(value) =>
+                          handleChange("transmission", value)
+                        }
                       >
                         <SelectTrigger className="bg-input border-border">
                           <SelectValue placeholder="Select transmission" />
@@ -469,25 +569,17 @@ export default function ListYourCarPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="horsepower">Horsepower</Label>
-                      <Input
-                        id="horsepower"
-                        placeholder="e.g., 379"
-                        value={formData.horsepower}
-                        onChange={(e) => handleChange("horsepower", e.target.value)}
-                        className="bg-input border-border"
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">Description *</Label>
                     <Textarea
                       id="description"
                       placeholder="Tell renters about your car - what makes it special, its condition, any unique features..."
                       value={formData.description}
-                      onChange={(e) => handleChange("description", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("description", e.target.value)
+                      }
                       className="bg-input border-border min-h-[150px]"
                     />
                   </div>
@@ -514,7 +606,9 @@ export default function ListYourCarPage() {
                             checked={formData.features.includes(feature)}
                             onCheckedChange={() => toggleFeature(feature)}
                           />
-                          <span className="text-sm text-foreground">{feature}</span>
+                          <span className="text-sm text-foreground">
+                            {feature}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -527,9 +621,14 @@ export default function ListYourCarPage() {
                         <Checkbox
                           id="noSmoking"
                           checked={formData.rules.noSmoking}
-                          onCheckedChange={(checked) => handleChange("rules.noSmoking", checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleChange("rules.noSmoking", checked as boolean)
+                          }
                         />
-                        <label htmlFor="noSmoking" className="text-sm text-foreground cursor-pointer">
+                        <label
+                          htmlFor="noSmoking"
+                          className="text-sm text-foreground cursor-pointer"
+                        >
                           No smoking in the vehicle
                         </label>
                       </div>
@@ -537,9 +636,14 @@ export default function ListYourCarPage() {
                         <Checkbox
                           id="noPets"
                           checked={formData.rules.noPets}
-                          onCheckedChange={(checked) => handleChange("rules.noPets", checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleChange("rules.noPets", checked as boolean)
+                          }
                         />
-                        <label htmlFor="noPets" className="text-sm text-foreground cursor-pointer">
+                        <label
+                          htmlFor="noPets"
+                          className="text-sm text-foreground cursor-pointer"
+                        >
                           No pets allowed
                         </label>
                       </div>
@@ -547,17 +651,29 @@ export default function ListYourCarPage() {
                         <Checkbox
                           id="cleanRecord"
                           checked={formData.rules.cleanRecord}
-                          onCheckedChange={(checked) => handleChange("rules.cleanRecord", checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleChange(
+                              "rules.cleanRecord",
+                              checked as boolean,
+                            )
+                          }
                         />
-                        <label htmlFor="cleanRecord" className="text-sm text-foreground cursor-pointer">
+                        <label
+                          htmlFor="cleanRecord"
+                          className="text-sm text-foreground cursor-pointer"
+                        >
                           Clean driving record required
                         </label>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Label htmlFor="minAge" className="text-sm">Minimum driver age:</Label>
+                        <Label htmlFor="minAge" className="text-sm">
+                          Minimum driver age:
+                        </Label>
                         <Select
                           value={formData.rules.minAge}
-                          onValueChange={(value) => handleChange("rules.minAge", value)}
+                          onValueChange={(value) =>
+                            handleChange("rules.minAge", value)
+                          }
                         >
                           <SelectTrigger className="w-24 bg-input border-border">
                             <SelectValue />
@@ -588,21 +704,12 @@ export default function ListYourCarPage() {
                           id="location"
                           placeholder="e.g., Los Angeles, CA"
                           value={formData.location}
-                          onChange={(e) => handleChange("location", e.target.value)}
+                          onChange={(e) =>
+                            handleChange("location", e.target.value)
+                          }
                           className="pl-10 bg-input border-border"
                         />
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Pickup Address</Label>
-                      <Input
-                        id="address"
-                        placeholder="Street address (visible only to confirmed renters)"
-                        value={formData.address}
-                        onChange={(e) => handleChange("address", e.target.value)}
-                        className="bg-input border-border"
-                      />
                     </div>
                   </div>
 
@@ -616,51 +723,11 @@ export default function ListYourCarPage() {
                           type="number"
                           placeholder="0"
                           value={formData.pricePerDay}
-                          onChange={(e) => handleChange("pricePerDay", e.target.value)}
+                          onChange={(e) =>
+                            handleChange("pricePerDay", e.target.value)
+                          }
                           className="pl-10 bg-input border-border"
                         />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        You will receive 85% of the rental price. Rydex takes a 15% service fee.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label>Minimum Rental Days</Label>
-                        <Select
-                          value={formData.minRentalDays}
-                          onValueChange={(value) => handleChange("minRentalDays", value)}
-                        >
-                          <SelectTrigger className="bg-input border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 5, 7].map((days) => (
-                              <SelectItem key={days} value={days.toString()}>
-                                {days} {days === 1 ? "day" : "days"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Maximum Rental Days</Label>
-                        <Select
-                          value={formData.maxRentalDays}
-                          onValueChange={(value) => handleChange("maxRentalDays", value)}
-                        >
-                          <SelectTrigger className="bg-input border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[7, 14, 30, 60, 90].map((days) => (
-                              <SelectItem key={days} value={days.toString()}>
-                                {days} days
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       </div>
                     </div>
 
@@ -668,25 +735,42 @@ export default function ListYourCarPage() {
                     {formData.pricePerDay && (
                       <Card className="bg-primary/5 border-primary/20">
                         <CardContent className="p-4">
-                          <h4 className="font-medium text-foreground mb-2">Estimated Earnings</h4>
+                          <h4 className="font-medium text-foreground mb-2">
+                            Estimated Earnings
+                          </h4>
                           <div className="grid grid-cols-3 gap-4 text-center">
                             <div>
                               <div className="text-2xl font-bold text-primary">
-                                ${Math.round(Number(formData.pricePerDay) * 0.85 * 4)}
+                                $
+                                {Math.round(
+                                  Number(formData.pricePerDay) * 4,
+                                )}
                               </div>
-                              <div className="text-sm text-muted-foreground">Per Week</div>
+                              <div className="text-sm text-muted-foreground">
+                                Per Week
+                              </div>
                             </div>
                             <div>
                               <div className="text-2xl font-bold text-primary">
-                                ${Math.round(Number(formData.pricePerDay) * 0.85 * 15)}
+                                $
+                                {Math.round(
+                                  Number(formData.pricePerDay) * 15,
+                                )}
                               </div>
-                              <div className="text-sm text-muted-foreground">Per Month</div>
+                              <div className="text-sm text-muted-foreground">
+                                Per Month
+                              </div>
                             </div>
                             <div>
                               <div className="text-2xl font-bold text-primary">
-                                ${Math.round(Number(formData.pricePerDay) * 0.85 * 180)}
+                                $
+                                {Math.round(
+                                  Number(formData.pricePerDay) * 182,
+                                )}
                               </div>
-                              <div className="text-sm text-muted-foreground">Per Year</div>
+                              <div className="text-sm text-muted-foreground">
+                                Per Year
+                              </div>
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground text-center mt-2">
@@ -709,7 +793,11 @@ export default function ListYourCarPage() {
               {/* Navigation Buttons */}
               <div className="flex items-center justify-between pt-6 border-t border-border">
                 {currentStep > 1 ? (
-                  <Button variant="outline" onClick={prevStep} className="border-border">
+                  <Button
+                    variant="outline"
+                    onClick={prevStep}
+                    className="border-border"
+                  >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back
                   </Button>
@@ -752,7 +840,6 @@ export default function ListYourCarPage() {
           </Card>
         </div>
       </main>
-
     </div>
-  )
+  );
 }
