@@ -41,10 +41,12 @@ function mapCarFromApi(car: any) {
     price: car.pricePerDay,
     rating: 0,
     reviews: car.commentsCount ?? 0,
-    image:
-      car.images?.[0] ||
-      car.image ||
-      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    image: (() => {
+      const raw = car.images?.[0] || car.image
+      if (!raw) return "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80"
+      if (raw.startsWith("http")) return raw
+      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`
+    })(),
     location: car.location,
     fuelType: car.fuelType
       ? car.fuelType.charAt(0).toUpperCase() + car.fuelType.slice(1)
@@ -53,9 +55,12 @@ function mapCarFromApi(car: any) {
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
-      avatar:
-        car.owner?.profileImage ||
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
+      avatar: (() => {
+        const raw = car.owner?.profileImage
+        if (!raw) return "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80"
+        if (raw.startsWith("http")) return raw
+        return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`
+      })(),
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],

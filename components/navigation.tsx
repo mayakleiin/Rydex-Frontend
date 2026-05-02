@@ -18,6 +18,7 @@ interface NavigationProps {
 export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [aiSearchOpen, setAiSearchOpen] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const [authState, setAuthState] = useState<{ isAuthenticated: boolean; user: { name: string; avatar?: string } | null }>({
     isAuthenticated: isAuthProp ?? false,
     user: userProp ?? null,
@@ -106,16 +107,17 @@ export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: Navi
                 </Link>
                 <Link href="/profile">
                   <Button variant="ghost" size="icon-sm">
-                    {user?.avatar ? (
+                    {user?.avatar && !avatarError ? (
                       <img
                         src={user.avatar}
                         alt={user.name}
                         className="w-8 h-8 rounded-full object-cover ring-2 ring-border"
+                        onError={() => setAvatarError(true)}
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                         <span className="text-sm font-medium text-primary-foreground">
-                          {user?.name?.charAt(0) || 'U'}
+                          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                         </span>
                       </div>
                     )}
