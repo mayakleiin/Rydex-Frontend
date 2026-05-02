@@ -53,8 +53,6 @@ function mapCarFromApi(car: any) {
     name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
-    rating: 0,
-    reviews: car.commentsCount ?? 0,
     image: (car.images?.[0] || car.image)?.startsWith("http")
       ? car.images?.[0] || car.image
       : car.images?.[0] || car.image

@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Heart,
-  Star,
   Share2,
   MapPin,
   Fuel,
@@ -202,7 +201,7 @@ function CommentSection({ carId }: { carId: string }) {
                 ) : (
                   <Send className="w-4 h-4 mr-2" />
                 )}
-                Post Review
+                Post Comment
               </Button>
             </div>
           </form>
@@ -258,7 +257,7 @@ function CommentSection({ carId }: { carId: string }) {
         ))}
         {comments.length === 0 && (
           <p className="text-center text-muted-foreground py-8">
-            No reviews yet. Be the first!
+            No comments yet. Be the first!
           </p>
         )}
       </div>
@@ -313,49 +312,49 @@ export default function CarDetailPage() {
   };
 
   const handleBook = async () => {
-  setBookingMessage("")
+    setBookingMessage("");
 
-  if (!dateRange.from || !dateRange.to) {
-    setBookingMessage("Please select pickup and return dates")
-    return
-  }
-
-  const token = localStorage.getItem("accessToken")
-
-  if (!token) {
-    setBookingMessage("Please login before booking")
-    return
-  }
-
-  setBookingLoading(true)
-
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        carId,
-        pickupDate: dateRange.from.toISOString(),
-        returnDate: dateRange.to.toISOString(),
-      }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      throw new Error(data.message || "Booking failed")
+    if (!dateRange.from || !dateRange.to) {
+      setBookingMessage("Please select pickup and return dates");
+      return;
     }
 
-    setBookingMessage("Your booking request is waiting for owner approval")
-  } catch (err: any) {
-    setBookingMessage(err.message || "Booking failed")
-  } finally {
-    setBookingLoading(false)
-  }
-}
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      setBookingMessage("Please login before booking");
+      return;
+    }
+
+    setBookingLoading(true);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          carId,
+          pickupDate: dateRange.from.toISOString(),
+          returnDate: dateRange.to.toISOString(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Booking failed");
+      }
+
+      setBookingMessage("Your booking request is waiting for owner approval");
+    } catch (err: any) {
+      setBookingMessage(err.message || "Booking failed");
+    } finally {
+      setBookingLoading(false);
+    }
+  };
 
   const handleShare = () => {
     if (navigator.share) {
@@ -511,7 +510,7 @@ export default function CarDetailPage() {
                 <TabsList className="w-full justify-start bg-card border border-border">
                   <TabsTrigger value="description">Description</TabsTrigger>
                   <TabsTrigger value="features">Features</TabsTrigger>
-                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                  <TabsTrigger value="comments">Comments</TabsTrigger>{" "}
                 </TabsList>
 
                 <TabsContent value="description" className="mt-6">
@@ -544,7 +543,7 @@ export default function CarDetailPage() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="reviews" className="mt-6">
+                <TabsContent value="comments" className="mt-6">
                   <CommentSection carId={carId} />
                 </TabsContent>
               </Tabs>
@@ -708,27 +707,29 @@ export default function CarDetailPage() {
 
                     {/* Book Button */}
                     <Button
-  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 text-lg"
-  disabled={!dateRange.from || !dateRange.to || bookingLoading}
-  onClick={handleBook}
->
-  {bookingLoading
-    ? "Sending request..."
-    : dateRange.from && dateRange.to
-      ? "Book Now"
-      : "Select Dates to Book"}
-</Button>
+                      className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 text-lg"
+                      disabled={
+                        !dateRange.from || !dateRange.to || bookingLoading
+                      }
+                      onClick={handleBook}
+                    >
+                      {bookingLoading
+                        ? "Sending request..."
+                        : dateRange.from && dateRange.to
+                          ? "Book Now"
+                          : "Select Dates to Book"}
+                    </Button>
 
-{bookingMessage && (
-  <p className="mt-3 text-center text-sm text-muted-foreground">
-    {bookingMessage}
-  </p>
-)}
-                       {bookingMessage && (
-  <p className="mt-3 text-center text-sm text-muted-foreground">
-    {bookingMessage}
-  </p>
-)}
+                    {bookingMessage && (
+                      <p className="mt-3 text-center text-sm text-muted-foreground">
+                        {bookingMessage}
+                      </p>
+                    )}
+                    {bookingMessage && (
+                      <p className="mt-3 text-center text-sm text-muted-foreground">
+                        {bookingMessage}
+                      </p>
+                    )}
 
                     {/* Trust Badges */}
                     <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
