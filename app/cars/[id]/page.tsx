@@ -336,6 +336,18 @@ export default function CarDetailPage() {
     );
   }
 
+  const normalizedFeatures: string[] = Array.isArray(car.features)
+    ? car.features.flatMap((feature: string) => {
+        try {
+          const parsed = JSON.parse(feature);
+
+          return Array.isArray(parsed) ? parsed : feature;
+        } catch {
+          return feature;
+        }
+      })
+    : [];
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -458,9 +470,25 @@ export default function CarDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="features" className="mt-6">
-                  <p className="text-muted-foreground">
-                    No additional features listed.
-                  </p>
+                  {normalizedFeatures.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {normalizedFeatures.map((feature: string) => (
+                        <div
+                          key={feature}
+                          className="flex items-center gap-2 p-3 rounded-lg bg-card border border-border"
+                        >
+                          <Check className="w-4 h-4 text-primary" />
+                          <span className="text-sm text-foreground">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      No additional features listed.
+                    </p>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="reviews" className="mt-6">
