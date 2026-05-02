@@ -305,13 +305,20 @@ export default function ListYourCarPage() {
         body,
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type");
+      const data = contentType?.includes("application/json")
+        ? await res.json()
+        : { message: await res.text() };
+
       if (res.status === 401) {
         localStorage.removeItem("accessToken");
         router.push("/login");
         return;
       }
-      if (!res.ok) throw new Error(data.message || "Failed to create listing");
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create listing");
+      }
 
       router.push("/profile?listed=true");
     } catch (err: any) {
@@ -521,7 +528,7 @@ export default function ListYourCarPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {fuelTypes.map((fuel) => (
-                            <SelectItem key={fuel} value={fuel.toLowerCase()}>
+                            <SelectItem key={fuel} value={fuel}>
                               {fuel}
                             </SelectItem>
                           ))}
@@ -541,7 +548,7 @@ export default function ListYourCarPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {transmissionTypes.map((trans) => (
-                            <SelectItem key={trans} value={trans.toLowerCase()}>
+                            <SelectItem key={trans} value={trans}>
                               {trans}
                             </SelectItem>
                           ))}
@@ -741,10 +748,7 @@ export default function ListYourCarPage() {
                           <div className="grid grid-cols-3 gap-4 text-center">
                             <div>
                               <div className="text-2xl font-bold text-primary">
-                                $
-                                {Math.round(
-                                  Number(formData.pricePerDay) * 4,
-                                )}
+                                ${Math.round(Number(formData.pricePerDay) * 4)}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Per Week
@@ -752,10 +756,7 @@ export default function ListYourCarPage() {
                             </div>
                             <div>
                               <div className="text-2xl font-bold text-primary">
-                                $
-                                {Math.round(
-                                  Number(formData.pricePerDay) * 15,
-                                )}
+                                ${Math.round(Number(formData.pricePerDay) * 15)}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Per Month
@@ -764,9 +765,7 @@ export default function ListYourCarPage() {
                             <div>
                               <div className="text-2xl font-bold text-primary">
                                 $
-                                {Math.round(
-                                  Number(formData.pricePerDay) * 182,
-                                )}
+                                {Math.round(Number(formData.pricePerDay) * 182)}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Per Year
