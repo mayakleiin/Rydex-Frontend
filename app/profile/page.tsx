@@ -53,6 +53,7 @@ function mapCarFromApi(car: any) {
         : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
     fuelType: car.fuelType ?? "Gasoline",
+    transmission: car.transmission ?? "Automatic",
     seats: car.seats ?? 4,
     horsepower: 0,
     owner: {

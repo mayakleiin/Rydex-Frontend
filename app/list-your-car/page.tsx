@@ -114,10 +114,7 @@ export default function ListYourCarPage() {
     },
     // Step 4 - Location & Pricing
     location: "",
-    address: "",
     pricePerDay: "",
-    minRentalDays: "1",
-    maxRentalDays: "30",
   });
 
   const handleChange = (field: string, value: string | string[] | boolean) => {
@@ -275,7 +272,8 @@ export default function ListYourCarPage() {
         return;
       }
 
-      const brandToSubmit = formData.brand === "other" ? customBrand.trim() : formData.brand;
+      const brandToSubmit =
+        formData.brand === "other" ? customBrand.trim() : formData.brand;
 
       const body = new FormData();
       body.append(
@@ -308,6 +306,11 @@ export default function ListYourCarPage() {
       });
 
       const data = await res.json();
+      if (res.status === 401) {
+        localStorage.removeItem("accessToken");
+        router.push("/login");
+        return;
+      }
       if (!res.ok) throw new Error(data.message || "Failed to create listing");
 
       router.push("/profile?listed=true");
@@ -708,19 +711,6 @@ export default function ListYourCarPage() {
                         />
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Pickup Address</Label>
-                      <Input
-                        id="address"
-                        placeholder="Street address (visible only to confirmed renters)"
-                        value={formData.address}
-                        onChange={(e) =>
-                          handleChange("address", e.target.value)
-                        }
-                        className="bg-input border-border"
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-6 pt-6 border-t border-border">
@@ -739,53 +729,6 @@ export default function ListYourCarPage() {
                           className="pl-10 bg-input border-border"
                         />
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        You will receive 85% of the rental price. Rydex takes a
-                        15% service fee.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label>Minimum Rental Days</Label>
-                        <Select
-                          value={formData.minRentalDays}
-                          onValueChange={(value) =>
-                            handleChange("minRentalDays", value)
-                          }
-                        >
-                          <SelectTrigger className="bg-input border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 5, 7].map((days) => (
-                              <SelectItem key={days} value={days.toString()}>
-                                {days} {days === 1 ? "day" : "days"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Maximum Rental Days</Label>
-                        <Select
-                          value={formData.maxRentalDays}
-                          onValueChange={(value) =>
-                            handleChange("maxRentalDays", value)
-                          }
-                        >
-                          <SelectTrigger className="bg-input border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[7, 14, 30, 60, 90].map((days) => (
-                              <SelectItem key={days} value={days.toString()}>
-                                {days} days
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
 
                     {/* Earnings Preview */}
@@ -800,7 +743,7 @@ export default function ListYourCarPage() {
                               <div className="text-2xl font-bold text-primary">
                                 $
                                 {Math.round(
-                                  Number(formData.pricePerDay) * 0.85 * 4,
+                                  Number(formData.pricePerDay) * 4,
                                 )}
                               </div>
                               <div className="text-sm text-muted-foreground">
@@ -811,7 +754,7 @@ export default function ListYourCarPage() {
                               <div className="text-2xl font-bold text-primary">
                                 $
                                 {Math.round(
-                                  Number(formData.pricePerDay) * 0.85 * 15,
+                                  Number(formData.pricePerDay) * 15,
                                 )}
                               </div>
                               <div className="text-sm text-muted-foreground">
@@ -822,7 +765,7 @@ export default function ListYourCarPage() {
                               <div className="text-2xl font-bold text-primary">
                                 $
                                 {Math.round(
-                                  Number(formData.pricePerDay) * 0.85 * 180,
+                                  Number(formData.pricePerDay) * 182,
                                 )}
                               </div>
                               <div className="text-sm text-muted-foreground">

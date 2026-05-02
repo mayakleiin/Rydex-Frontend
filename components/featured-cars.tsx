@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Heart, Star, Fuel, Users, Gauge, Loader2 } from "lucide-react";
+import { Heart, Star, Fuel, Users, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -22,7 +22,7 @@ function mapCarFromApi(car: any) {
     location: car.location,
     fuelType: car.fuelType ?? "Gasoline",
     seats: car.seats ?? 4,
-    horsepower: 0,
+    transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
       avatar: car.owner?.profileImage?.startsWith("http")
@@ -47,7 +47,7 @@ interface Car {
   location: string;
   fuelType: string;
   seats: number;
-  horsepower: number;
+  transmission: string;
   owner: { name: string; avatar: string };
   likes: number;
   likesIds?: string[];
@@ -143,8 +143,8 @@ export function CarCard({ car }: CarCardProps) {
             <span>{car.seats}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Gauge className="w-4 h-4" />
-            <span>{car.horsepower}hp</span>
+            <Settings className="w-4 h-4" />
+            <span>{car.transmission}</span>
           </div>
           <div
             className={`flex items-center gap-1 ml-auto ${liked ? "text-red-500" : ""}`}
