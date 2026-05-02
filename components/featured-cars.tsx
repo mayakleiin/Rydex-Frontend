@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Heart, Star, Fuel, Users, Gauge, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Heart, Star, Fuel, Users, Gauge, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 function mapCarFromApi(car: any) {
   return {
     id: car._id,
-    name: `${car.make} ${car.model}`,
+    name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
     rating: 0,
@@ -17,8 +17,8 @@ function mapCarFromApi(car: any) {
     image: car.image?.startsWith("http")
       ? car.image
       : car.image
-      ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
-      : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
+        : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
     fuelType: car.fuelType ?? "Gasoline",
     seats: car.seats ?? 4,
@@ -28,54 +28,57 @@ function mapCarFromApi(car: any) {
       avatar: car.owner?.profileImage?.startsWith("http")
         ? car.owner.profileImage
         : car.owner?.profileImage
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.owner.profileImage}`
-        : "",
+          ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.owner.profileImage}`
+          : "",
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
-  }
+  };
 }
 
 interface Car {
-  id: string
-  name: string
-  year: number
-  price: number
-  rating: number
-  reviews: number
-  image: string
-  location: string
-  fuelType: string
-  seats: number
-  horsepower: number
-  owner: { name: string; avatar: string }
-  likes: number
-  likesIds?: string[]
+  id: string;
+  name: string;
+  year: number;
+  price: number;
+  rating: number;
+  reviews: number;
+  image: string;
+  location: string;
+  fuelType: string;
+  seats: number;
+  horsepower: number;
+  owner: { name: string; avatar: string };
+  likes: number;
+  likesIds?: string[];
 }
 
 interface CarCardProps {
-  car: Car
+  car: Car;
 }
 
 export function CarCard({ car }: CarCardProps) {
-  const userId = typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("user") || "null")?._id
-    : null
-  const [liked, setLiked] = useState(() => !!(userId && car.likesIds?.includes(userId)))
-  const [likesCount, setLikesCount] = useState(car.likes)
+  const userId =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "null")?._id
+      : null;
+  const [liked, setLiked] = useState(
+    () => !!(userId && car.likesIds?.includes(userId)),
+  );
+  const [likesCount, setLikesCount] = useState(car.likes);
 
   const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const token = localStorage.getItem("accessToken")
-    if (!token) return
-    setLiked(!liked)
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1)
+    e.preventDefault();
+    e.stopPropagation();
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    setLiked(!liked);
+    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-    })
-  }
+    });
+  };
 
   return (
     <Card className="group bg-card border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-2xl">
@@ -94,14 +97,18 @@ export function CarCard({ car }: CarCardProps) {
           }`}
         >
           <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
-          <span className="sr-only">{liked ? "Remove from favorites" : "Add to favorites"}</span>
+          <span className="sr-only">
+            {liked ? "Remove from favorites" : "Add to favorites"}
+          </span>
         </Button>
         <div className="absolute bottom-3 left-3 flex items-center gap-2">
-          <img
-            src={car.owner.avatar || null}
-            alt={car.owner.name}
-            className="w-8 h-8 rounded-full border-2 border-background"
-          />
+          {car.owner.avatar && (
+            <img
+              src={car.owner.avatar}
+              alt={car.owner.name}
+              className="w-8 h-8 rounded-full border-2 border-background"
+            />
+          )}
           <span className="text-sm text-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full">
             {car.owner.name}
           </span>
@@ -113,12 +120,16 @@ export function CarCard({ car }: CarCardProps) {
             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
               {car.name}
             </h3>
-            <p className="text-sm text-muted-foreground">{car.year} • {car.location}</p>
+            <p className="text-sm text-muted-foreground">
+              {car.year} • {car.location}
+            </p>
           </div>
           <div className="flex items-center gap-1 text-primary">
             <Star className="w-4 h-4 fill-current" />
             <span className="text-sm font-medium">{car.rating}</span>
-            <span className="text-xs text-muted-foreground">({car.reviews})</span>
+            <span className="text-xs text-muted-foreground">
+              ({car.reviews})
+            </span>
           </div>
         </div>
 
@@ -135,7 +146,9 @@ export function CarCard({ car }: CarCardProps) {
             <Gauge className="w-4 h-4" />
             <span>{car.horsepower}hp</span>
           </div>
-          <div className={`flex items-center gap-1 ml-auto ${liked ? "text-red-500" : ""}`}>
+          <div
+            className={`flex items-center gap-1 ml-auto ${liked ? "text-red-500" : ""}`}
+          >
             <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
             <span>{likesCount}</span>
           </div>
@@ -143,36 +156,42 @@ export function CarCard({ car }: CarCardProps) {
 
         <div className="flex items-center justify-between pt-3 border-t border-border">
           <div>
-            <span className="text-2xl font-bold text-primary">${car.price}</span>
+            <span className="text-2xl font-bold text-primary">
+              ${car.price}
+            </span>
             <span className="text-sm text-muted-foreground">/day</span>
           </div>
           <Link href={`/cars/${car.id}`}>
-            <Button variant="outline" size="sm">Details</Button>
+            <Button variant="outline" size="sm">
+              Details
+            </Button>
           </Link>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function FeaturedCars() {
-  const [cars, setCars] = useState<Car[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [cars, setCars] = useState<Car[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars?limit=6`)
       .then((r) => r.json())
       .then((data) => setCars((data.cars ?? []).map(mapCarFromApi)))
       .catch(() => {})
-      .finally(() => setIsLoading(false))
-  }, [])
+      .finally(() => setIsLoading(false));
+  }, []);
 
   return (
     <section className="py-24 bg-secondary/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-16">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-primary mb-4 font-medium">Our Fleet</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-primary mb-4 font-medium">
+              Our Fleet
+            </p>
             <h2 className="font-serif text-4xl sm:text-5xl font-medium text-foreground italic">
               Featured <span className="text-primary">Vehicles</span>
             </h2>
@@ -195,8 +214,7 @@ export function FeaturedCars() {
         )}
       </div>
     </section>
-  )
+  );
 }
 
-export { CarCard }
-export type { Car }
+export type { Car };

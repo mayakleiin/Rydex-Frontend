@@ -98,7 +98,7 @@ export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: Navi
             
             {isAuthenticated ? (
               <>
-                <Link href="/favorites">
+                <Link href="/profile?tab=favorites">
                   <Button variant="ghost" size="icon-sm">
                     <Heart className="w-5 h-5" />
                     <span className="sr-only">Favorites</span>
@@ -185,7 +185,7 @@ export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: Navi
                 
                 {isAuthenticated ? (
                   <>
-                    <Link href="/favorites" onClick={() => setMobileMenuOpen(false)}>
+                    <Link href="/profile?tab=favorites" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full">
                         <Heart className="w-4 h-4 mr-2" />
                         Favorites

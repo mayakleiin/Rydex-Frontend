@@ -41,7 +41,6 @@ const carBrands = [
 
 const fuelTypes = ["Premium", "Regular", "Diesel", "Electric", "Hybrid"]
 const transmissionTypes = ["Automatic", "Manual", "Semi-Automatic"]
-const categories = ["Luxury", "Sports", "SUV", "Sedan", "Electric", "Exotic", "Business"]
 
 const features = [
   "Apple CarPlay / Android Auto",
@@ -82,7 +81,6 @@ export default function ListYourCarPage() {
     brand: "",
     model: "",
     year: "",
-    category: "",
     // Step 2 - Details
     fuelType: "",
     transmission: "",
@@ -124,6 +122,33 @@ export default function ListYourCarPage() {
     handleChange("features", newFeatures)
   }
 
+  const isStep1Complete = () => {
+    return formData.brand && formData.model && formData.year && imagePreviews.length > 0
+  }
+
+  const isStep2Complete = () => {
+    return formData.fuelType && formData.transmission && formData.seats
+  }
+
+  const isStep4Complete = () => {
+    return formData.location && formData.pricePerDay
+  }
+
+  const getStepCompletion = (stepNum: number) => {
+    switch (stepNum) {
+      case 1:
+        return isStep1Complete()
+      case 2:
+        return isStep2Complete()
+      case 3:
+        return true // Step 3 is always complete (no required fields)
+      case 4:
+        return isStep4Complete()
+      default:
+        return false
+    }
+  }
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     const newFiles = [...imageFiles, ...files].slice(0, 8)
@@ -138,6 +163,30 @@ export default function ListYourCarPage() {
   }
 
   const nextStep = () => {
+    if (currentStep === 1) {
+      if (!formData.brand || !formData.model || !formData.year) {
+        setError("Please complete all fields: Brand, Model, and Year")
+        return
+      }
+      if (imagePreviews.length === 0) {
+        setError("Please upload at least one photo")
+        return
+      }
+    } else if (currentStep === 2) {
+      if (!formData.fuelType || !formData.transmission || !formData.seats) {
+        setError("Please complete all fields: Fuel Type, Transmission, and Seats")
+        return
+      }
+    } else if (currentStep === 3) {
+      // Step 3 is optional for features/rules, no required fields
+    } else if (currentStep === 4) {
+      if (!formData.location || !formData.pricePerDay) {
+        setError("Please complete all fields: City and Price per Day")
+        return
+      }
+    }
+
+    setError("")
     if (currentStep < 4) setCurrentStep((currentStep + 1) as Step)
   }
 
@@ -147,6 +196,25 @@ export default function ListYourCarPage() {
 
   const handleSubmit = async () => {
     setError("")
+
+    // Final validation
+    if (
+      !formData.brand ||
+      !formData.model ||
+      !formData.year ||
+      !formData.fuelType ||
+      !formData.transmission ||
+      !formData.seats ||
+      !formData.location ||
+      !formData.pricePerDay ||
+      !imagePreviews.length
+    ) {
+      setError(
+        "Please complete all required fields across all steps before submitting"
+      )
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -158,7 +226,7 @@ export default function ListYourCarPage() {
 
       const body = new FormData()
       body.append("title", `${formData.brand} ${formData.model} ${formData.year}`)
-      body.append("make", formData.brand)
+      body.append("brand", formData.brand)
       body.append("model", formData.model)
       body.append("year", formData.year)
       body.append("description", formData.description || "No description provided")
@@ -292,24 +360,6 @@ export default function ListYourCarPage() {
                           {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
                             <SelectItem key={year} value={year.toString()}>
                               {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) => handleChange("category", value)}
-                      >
-                        <SelectTrigger className="bg-input border-border">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat.toLowerCase()}>
-                              {cat}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -667,7 +717,14 @@ export default function ListYourCarPage() {
                   <div />
                 )}
                 {currentStep < 4 ? (
-                  <Button onClick={nextStep} className="bg-primary text-primary-foreground">
+                  <Button
+                    onClick={nextStep}
+                    className="bg-primary text-primary-foreground"
+                    disabled={
+                      (currentStep === 1 && !isStep1Complete()) ||
+                      (currentStep === 2 && !isStep2Complete())
+                    }
+                  >
                     Continue
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -675,7 +732,7 @@ export default function ListYourCarPage() {
                   <Button
                     onClick={handleSubmit}
                     className="bg-primary text-primary-foreground"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isStep4Complete()}
                   >
                     {isSubmitting ? (
                       <>

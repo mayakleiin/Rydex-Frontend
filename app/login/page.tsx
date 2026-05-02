@@ -6,14 +6,12 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -160,22 +158,6 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                />
-                <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-                  Remember me
-                </label>
-              </div>
-              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                Forgot password?
-              </Link>
             </div>
 
             <Button
