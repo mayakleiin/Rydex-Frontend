@@ -53,10 +53,11 @@ const carBrands = [
   "Tesla",
   "Toyota",
   "Volkswagen",
+  "Other",
 ];
 
 const fuelTypes = ["Gasoline", "Diesel", "Electric", "Hybrid"];
-const transmissionTypes = ["Manual", "Automatic", "Cvt", "Robotic", "Dct"];
+const transmissionTypes = ["Manual", "Automatic", "CVT", "Robotic", "DCT"];
 
 const features = [
   "Apple CarPlay / Android Auto",
@@ -90,6 +91,7 @@ export default function ListYourCarPage() {
   }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [customBrand, setCustomBrand] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
@@ -138,7 +140,15 @@ export default function ListYourCarPage() {
   };
 
   const isStep1Complete = () => {
-    return formData.brand && formData.model && formData.year;
+    const brandIsValid =
+      formData.brand && (formData.brand !== "other" || customBrand.trim());
+    return (
+      brandIsValid &&
+      formData.model &&
+      formData.year &&
+      formData.year.length === 4 &&
+      /^\d{4}$/.test(formData.year)
+    );
   };
 
   const isStep2Complete = () => {
@@ -148,7 +158,11 @@ export default function ListYourCarPage() {
   };
 
   const isStep4Complete = () => {
-    return true; // Step 4 is optional - all fields are optional
+    return (
+      formData.pricePerDay &&
+      !isNaN(Number(formData.pricePerDay)) &&
+      Number(formData.pricePerDay) > 0
+    );
   };
 
   const getStepCompletion = (stepNum: number) => {
@@ -181,8 +195,19 @@ export default function ListYourCarPage() {
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (!formData.brand || !formData.model || !formData.year) {
-        setError("Please complete all fields: Brand, Model, and Year");
+      if (
+        !formData.brand ||
+        !formData.model ||
+        !formData.year ||
+        formData.year.length !== 4 ||
+        !/^\d{4}$/.test(formData.year) ||
+        (formData.brand === "other" && !customBrand.trim())
+      ) {
+        setError(
+          formData.brand === "other"
+            ? "Please enter your brand name"
+            : "Please complete all fields correctly: Brand, Model, and Year (4 digits)",
+        );
         return;
       }
     } else if (currentStep === 2) {
@@ -199,7 +224,14 @@ export default function ListYourCarPage() {
     } else if (currentStep === 3) {
       // Step 3 is optional for features/rules, no required fields
     } else if (currentStep === 4) {
-      // Step 4 is optional - no required fields
+      if (
+        !formData.pricePerDay ||
+        isNaN(Number(formData.pricePerDay)) ||
+        Number(formData.pricePerDay) <= 0
+      ) {
+        setError("Please enter a valid price per day");
+        return;
+      }
     }
 
     setError("");
@@ -218,9 +250,15 @@ export default function ListYourCarPage() {
       !formData.brand ||
       !formData.model ||
       !formData.year ||
+      formData.year.length !== 4 ||
+      !/^\d{4}$/.test(formData.year) ||
+      (formData.brand === "other" && !customBrand.trim()) ||
       !formData.fuelType ||
       !formData.transmission ||
-      !formData.description?.trim()
+      !formData.description?.trim() ||
+      !formData.pricePerDay ||
+      isNaN(Number(formData.pricePerDay)) ||
+      Number(formData.pricePerDay) <= 0
     ) {
       setError(
         "Please complete all required fields across all steps before submitting",
@@ -237,12 +275,14 @@ export default function ListYourCarPage() {
         return;
       }
 
+      const brandToSubmit = formData.brand === "other" ? customBrand.trim() : formData.brand;
+
       const body = new FormData();
       body.append(
         "title",
-        `${formData.brand} ${formData.model} ${formData.year}`,
+        `${brandToSubmit} ${formData.model} ${formData.year}`,
       );
-      body.append("brand", formData.brand);
+      body.append("brand", brandToSubmit);
       body.append("model", formData.model);
       body.append("year", formData.year);
       body.append(
@@ -256,6 +296,10 @@ export default function ListYourCarPage() {
         body.append("transmission", formData.transmission);
       if (formData.seats) body.append("seats", formData.seats);
       if (imageFiles[0]) body.append("image", imageFiles[0]);
+      if (formData.features.length > 0)
+        body.append("features", JSON.stringify(formData.features));
+      if (Object.keys(formData.rules).length > 0)
+        body.append("rules", JSON.stringify(formData.rules));
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars`, {
         method: "POST",
@@ -341,7 +385,12 @@ export default function ListYourCarPage() {
                       <Label htmlFor="brand">Brand *</Label>
                       <Select
                         value={formData.brand}
-                        onValueChange={(value) => handleChange("brand", value)}
+                        onValueChange={(value) => {
+                          handleChange("brand", value);
+                          if (value !== "other") {
+                            setCustomBrand("");
+                          }
+                        }}
                       >
                         <SelectTrigger className="bg-input border-border">
                           <SelectValue placeholder="Select brand" />
@@ -354,6 +403,14 @@ export default function ListYourCarPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {formData.brand === "other" && (
+                        <Input
+                          placeholder="Enter your brand name"
+                          value={customBrand}
+                          onChange={(e) => setCustomBrand(e.target.value)}
+                          className="bg-input border-border mt-2"
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="model">Model *</Label>
@@ -370,23 +427,25 @@ export default function ListYourCarPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="year">Year *</Label>
-                      <Select
+                      <Input
+                        id="year"
+                        placeholder="e.g., 2020"
                         value={formData.year}
-                        onValueChange={(value) => handleChange("year", value)}
-                      >
-                        <SelectTrigger className="bg-input border-border">
-                          <SelectValue placeholder="Select year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 10 }, (_, i) => 2024 - i).map(
-                            (year) => (
-                              <SelectItem key={year} value={year.toString()}>
-                                {year}
-                              </SelectItem>
-                            ),
-                          )}
-                        </SelectContent>
-                      </Select>
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow digits and max 4 characters
+                          if (/^\d*$/.test(value) && value.length <= 4) {
+                            handleChange("year", value);
+                          }
+                        }}
+                        maxLength={4}
+                        className="bg-input border-border"
+                      />
+                      {formData.year && formData.year.length !== 4 && (
+                        <p className="text-sm text-destructive">
+                          Year must be exactly 4 digits
+                        </p>
+                      )}
                     </div>
                   </div>
 
