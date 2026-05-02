@@ -175,6 +175,7 @@ function EditCarDialog({ car, onSaved }: { car: any; onSaved: (updated: any) => 
 
 function EditProfileDialog({ user, onSaved }: { user: any; onSaved: (updated: any) => void }) {
   const [username, setUsername] = useState(user?.username ?? "")
+  const [email, setEmail] = useState(user?.email ?? "")
   const [isLoading, setIsLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -182,22 +183,32 @@ function EditProfileDialog({ user, onSaved }: { user: any; onSaved: (updated: an
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+
     try {
       const token = localStorage.getItem("accessToken")
       const body = new FormData()
+
       body.append("username", username)
-      if (fileRef.current?.files?.[0]) body.append("profileImage", fileRef.current.files[0])
+      body.append("email", email)
+
+      if (fileRef.current?.files?.[0]) {
+        body.append("profileImage", fileRef.current.files[0])
+      }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${user._id}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
         body,
       })
+
       const data = await res.json()
+
       if (res.ok) {
         localStorage.setItem("user", JSON.stringify(data))
         onSaved(data)
         setOpen(false)
+      } else {
+        alert(data.message || "Failed to update profile")
       }
     } finally {
       setIsLoading(false)
@@ -212,19 +223,34 @@ function EditProfileDialog({ user, onSaved }: { user: any; onSaved: (updated: an
           Edit Profile
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
-          <DialogDescription>Update your photo and display name.</DialogDescription>
+          <DialogDescription>Update your photo, display name and email.</DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="flex items-center gap-4">
             <Avatar className="w-20 h-20">
               <AvatarImage src={getAvatarUrl(user?.profileImage)} alt={user?.username} />
               <AvatarFallback>{user?.username?.charAt(0)}</AvatarFallback>
             </Avatar>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" id="avatar-upload" />
-            <Button type="button" variant="outline" className="border-border" onClick={() => fileRef.current?.click()}>
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="avatar-upload"
+            />
+
+            <Button
+              type="button"
+              variant="outline"
+              className="border-border"
+              onClick={() => fileRef.current?.click()}
+            >
               <Camera className="w-4 h-4 mr-2" />
               Change Photo
             </Button>
@@ -241,15 +267,43 @@ function EditProfileDialog({ user, onSaved }: { user: any; onSaved: (updated: an
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-input border-border"
+              required
+            />
+          </div>
+
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" className="border-border" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-border"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground" disabled={isLoading}>
+
+            <Button
+              type="submit"
+              className="bg-primary text-primary-foreground"
+              disabled={isLoading}
+            >
               {isLoading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
               ) : (
-                <><Check className="w-4 h-4 mr-2" />Save Changes</>
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
               )}
             </Button>
           </div>
