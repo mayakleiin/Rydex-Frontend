@@ -277,10 +277,7 @@ export default function ListYourCarPage() {
         formData.brand === "other" ? customBrand.trim() : formData.brand;
 
       const body = new FormData();
-      body.append(
-        "title",
-        `${brandToSubmit} ${formData.model} ${formData.year}`,
-      );
+      body.append("title", `${brandToSubmit} ${formData.model}`);
       body.append("brand", brandToSubmit);
       body.append("model", formData.model);
       body.append("year", formData.year);

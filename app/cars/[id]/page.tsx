@@ -359,9 +359,7 @@ export default function CarDetailPage() {
               Cars
             </Link>
             <span>/</span>
-            <span className="text-foreground">
-              {car.brand} {car.model}
-            </span>
+            <span className="text-foreground">{car.title}</span>
           </nav>
         </div>
 
@@ -380,7 +378,7 @@ export default function CarDetailPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h1 className="font-serif text-3xl sm:text-4xl font-medium italic text-foreground mb-2">
-                      {car.make} {car.model}
+                      {car.title}
                     </h1>
                     <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
                       <span>{car.year}</span>

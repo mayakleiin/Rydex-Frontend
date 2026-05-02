@@ -291,7 +291,7 @@ function EditCarDialog({
 
       const body = new FormData();
 
-      body.append("title", `${brandToSubmit} ${form.model} ${form.year}`);
+      body.append("title", `${brandToSubmit} ${form.model}`);
       body.append("brand", brandToSubmit);
       body.append("model", form.model);
       body.append("year", form.year);

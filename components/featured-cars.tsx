@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 function mapCarFromApi(car: any) {
   return {
     id: car._id,
-    name: `${car.brand} ${car.model}`,
+    name: car.title,
     year: car.year,
     price: car.pricePerDay,
     rating: 0,
