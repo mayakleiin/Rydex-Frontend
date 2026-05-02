@@ -42,14 +42,14 @@ function mapCarFromApi(car: any) {
     rating: 0,
     reviews: car.commentsCount ?? 0,
     image:
+      car.images?.[0] ||
       car.image ||
       "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
     fuelType: car.fuelType
       ? car.fuelType.charAt(0).toUpperCase() + car.fuelType.slice(1)
       : "Gasoline",
-    seats: car.seats ?? 4,
-    horsepower: 0,
+    seats: car.seats ?? "—",
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",

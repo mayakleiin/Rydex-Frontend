@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Navigation } from "@/components/navigation";
@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authFetch } from "@/lib/authFetch";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,14 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function getAvatarUrl(profileImage: string | undefined) {
   if (!profileImage) return "";
@@ -46,16 +55,15 @@ function mapCarFromApi(car: any) {
     price: car.pricePerDay,
     rating: 0,
     reviews: car.commentsCount ?? 0,
-    image: car.image?.startsWith("http")
-      ? car.image
-      : car.image
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
+    image: (car.images?.[0] || car.image)?.startsWith("http")
+      ? car.images?.[0] || car.image
+      : car.images?.[0] || car.image
+        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.images?.[0] || car.image}`
         : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
     fuelType: car.fuelType ?? "Gasoline",
     transmission: car.transmission ?? "Automatic",
-    seats: car.seats ?? 4,
-    horsepower: 0,
+    seats: car.seats ?? "—",
     owner: {
       name: car.owner?.username ?? "Owner",
       avatar: getAvatarUrl(car.owner?.profileImage),
@@ -64,6 +72,95 @@ function mapCarFromApi(car: any) {
     likesIds: car.likes ?? [],
   };
 }
+
+const carBrands = [
+  "Audi",
+  "BMW",
+  "Bentley",
+  "Cadillac",
+  "Ferrari",
+  "Ford",
+  "Honda",
+  "Jaguar",
+  "Lamborghini",
+  "Land Rover",
+  "Lexus",
+  "Maserati",
+  "McLaren",
+  "Mercedes-Benz",
+  "Porsche",
+  "Rolls-Royce",
+  "Tesla",
+  "Toyota",
+  "Volkswagen",
+  "Other",
+];
+
+const fuelTypes = ["Gasoline", "Diesel", "Electric", "Hybrid"];
+const transmissionTypes = ["Manual", "Automatic", "CVT", "Robotic", "DCT"];
+
+const brandOptions = carBrands.map((b) => ({ value: b, label: b }));
+const fuelTypeOptions = fuelTypes.map((f) => ({ value: f, label: f }));
+const transmissionOptions = transmissionTypes.map((t) => ({
+  value: t,
+  label: t,
+}));
+const seatOptions = [2, 4, 5, 6, 7, 8].map((n) => ({
+  value: String(n),
+  label: `${n} seats`,
+}));
+const minAgeOptions = [18, 21, 25, 30].map((age) => ({
+  value: String(age),
+  label: `${age}+`,
+}));
+
+const StableSelect = memo(function StableSelect({
+  value,
+  onValueChange,
+  placeholder,
+  triggerClassName,
+  options,
+}: {
+  value: string | undefined;
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  triggerClassName?: string;
+  options: readonly { value: string; label: string }[];
+}) {
+  return (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger className={triggerClassName}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+});
+
+const features = [
+  "Apple CarPlay / Android Auto",
+  "Navigation System",
+  "Bluetooth",
+  "Backup Camera",
+  "Heated Seats",
+  "Cooled Seats",
+  "Sunroof/Moonroof",
+  "Leather Seats",
+  "Premium Sound System",
+  "Adaptive Cruise Control",
+  "Lane Departure Warning",
+  "Parking Sensors",
+  "360 Camera",
+  "Keyless Entry",
+  "Wireless Charging",
+  "WiFi Hotspot",
+];
 
 function EditCarDialog({
   car,
@@ -74,198 +171,530 @@ function EditCarDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const existingBrand = carBrands.includes(car.brand) ? car.brand : "Other";
+
+  const [customBrand, setCustomBrand] = useState(
+    existingBrand === "Other" ? (car.brand ?? "") : "",
+  );
+
   const [form, setForm] = useState({
-    make: car.brand ?? "",
+    brand: existingBrand,
     model: car.model ?? "",
     year: String(car.year ?? ""),
-    location: car.location ?? "",
-    pricePerDay: String(car.pricePerDay ?? ""),
-    description: car.description ?? "",
     fuelType: car.fuelType ?? "",
     transmission: car.transmission ?? "",
-    seats: String(car.seats ?? ""),
+    seats: car.seats ? String(car.seats) : "",
+    description: car.description ?? "",
+    features: (car.features ?? []) as string[],
+    rules: {
+      noSmoking: car.rules?.noSmoking ?? true,
+      noPets: car.rules?.noPets ?? false,
+      minAge: String(car.rules?.minAge ?? "21"),
+      cleanRecord: car.rules?.cleanRecord ?? true,
+    },
+    location: car.location ?? "",
+    pricePerDay: String(car.pricePerDay ?? ""),
   });
+
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const set =
-    (field: string) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const [existingImages, setExistingImages] = useState<string[]>(
+    car.images?.length ? car.images : car.image ? [car.image] : [],
+  );
+
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+
+  const onBrandChange = useCallback((value: string) => {
+    setForm((prev) => ({ ...prev, brand: value }));
+    if (value !== "Other") setCustomBrand("");
+  }, []);
+
+  const onFuelTypeChange = useCallback(
+    (value: string) => setForm((prev) => ({ ...prev, fuelType: value })),
+    [],
+  );
+
+  const onTransmissionChange = useCallback(
+    (value: string) => setForm((prev) => ({ ...prev, transmission: value })),
+    [],
+  );
+
+  const onSeatsChange = useCallback(
+    (value: string) => setForm((prev) => ({ ...prev, seats: value })),
+    [],
+  );
+
+  const onMinAgeChange = useCallback(
+    (value: string) =>
+      setForm((prev) => ({ ...prev, rules: { ...prev.rules, minAge: value } })),
+    [],
+  );
+
+  const handleChange = (field: string, value: string | string[] | boolean) => {
+    if (field.startsWith("rules.")) {
+      const ruleField = field.split(".")[1];
+      setForm((prev) => ({
+        ...prev,
+        rules: { ...prev.rules, [ruleField]: value },
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [field]: value as any }));
+    }
+  };
+
+  const setFeatureChecked = useCallback((feature: string) => {
+    setForm((prev) => {
+      const exists = prev.features.includes(feature);
+
+      return {
+        ...prev,
+        features: exists
+          ? prev.features.filter((f) => f !== feature)
+          : [...prev.features, feature],
+      };
+    });
+  }, []);
+
+  const validateForm = () => {
+    if (
+      !form.brand ||
+      (form.brand === "Other" && !customBrand.trim()) ||
+      !form.model.trim() ||
+      !form.year ||
+      form.year.length !== 4 ||
+      !/^\d{4}$/.test(form.year) ||
+      !form.fuelType ||
+      !form.transmission ||
+      !form.description.trim() ||
+      !form.pricePerDay ||
+      isNaN(Number(form.pricePerDay)) ||
+      Number(form.pricePerDay) <= 0
+    ) {
+      setError(
+        "Please complete all required fields correctly: Brand, Model, Year with exactly 4 digits, Fuel Type, Transmission, Description and Price.",
+      );
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) return;
+
     setIsLoading(true);
+
     try {
       const token = localStorage.getItem("accessToken");
+
+      const brandToSubmit =
+        form.brand === "Other" ? customBrand.trim() : form.brand;
+
       const body = new FormData();
-      Object.entries(form).forEach(([k, v]) => {
-        if (v) body.append(k, v);
+
+      body.append("title", `${brandToSubmit} ${form.model}`);
+      body.append("brand", brandToSubmit);
+      body.append("model", form.model);
+      body.append("year", form.year);
+      body.append("fuelType", form.fuelType);
+      body.append("transmission", form.transmission);
+      body.append("description", form.description);
+      body.append("pricePerDay", form.pricePerDay);
+
+      body.append("location", form.location);
+      body.append("seats", form.seats);
+
+      body.append("features", JSON.stringify(form.features));
+      body.append("rules", JSON.stringify(form.rules));
+
+      body.append("keepImages", JSON.stringify(existingImages));
+
+      newImageFiles.forEach((file) => {
+        body.append("images", file);
       });
-      if (fileRef.current?.files?.[0])
-        body.append("image", fileRef.current.files[0]);
-      const res = await fetch(
+
+      const res = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/cars/${car._id}`,
         {
           method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
           body,
         },
       );
-      if (res.ok) {
-        const updated = await res.json();
-        onSaved(updated);
-        setOpen(false);
+      const text = await res.text();
+
+      let data: any = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(text || "Failed to update car");
       }
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update car");
+      }
+
+      onSaved(data);
+      setOpen(false);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="border-border">
-          <Edit2 className="w-3 h-3 mr-1" />
-          Edit
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Car Listing</DialogTitle>
-          <DialogDescription>Update your car details.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Make</Label>
-              <Input
-                value={form.make}
-                onChange={set("make")}
-                required
-                className="bg-input border-border"
-              />
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="border-border"
+        onClick={() => setOpen(true)}
+      >
+        <Edit2 className="w-3 h-3 mr-1" />
+        Edit
+      </Button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-[760px] max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Edit Car Listing</h2>
+                <p className="text-sm text-muted-foreground">
+                  Update your car details. Optional fields can stay empty.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOpen(false)}
+              >
+                ✕
+              </Button>
             </div>
-            <div className="space-y-1">
-              <Label>Model</Label>
-              <Input
-                value={form.model}
-                onChange={set("model")}
-                required
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Year</Label>
-              <Input
-                type="number"
-                value={form.year}
-                onChange={set("year")}
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Price / Day ($)</Label>
-              <Input
-                type="number"
-                value={form.pricePerDay}
-                onChange={set("pricePerDay")}
-                required
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Fuel Type</Label>
-              <Input
-                value={form.fuelType}
-                onChange={set("fuelType")}
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Transmission</Label>
-              <Input
-                value={form.transmission}
-                onChange={set("transmission")}
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Seats</Label>
-              <Input
-                type="number"
-                value={form.seats}
-                onChange={set("seats")}
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Location</Label>
-              <Input
-                value={form.location}
-                onChange={set("location")}
-                required
-                className="bg-input border-border"
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label>Description</Label>
-            <Textarea
-              value={form.description}
-              onChange={set("description")}
-              className="bg-input border-border min-h-[80px]"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Replace Image</Label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id={`car-img-${car._id}`}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-border"
-              onClick={() => fileRef.current?.click()}
-            >
-              <Camera className="w-3 h-3 mr-1" />
-              Choose Image
-            </Button>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="border-border"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-primary text-primary-foreground"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Save
-                </>
+
+            <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Brand *</Label>
+                  <StableSelect
+                    value={form.brand}
+                    onValueChange={onBrandChange}
+                    placeholder="Select brand"
+                    triggerClassName="bg-input border-border"
+                    options={brandOptions}
+                  />
+
+                  {form.brand === "Other" && (
+                    <Input
+                      placeholder="Enter brand name"
+                      value={customBrand}
+                      onChange={(e) => setCustomBrand(e.target.value)}
+                      className="bg-input border-border mt-2"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Model *</Label>
+                  <Input
+                    value={form.model}
+                    onChange={(e) => handleChange("model", e.target.value)}
+                    className="bg-input border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Year *</Label>
+                  <Input
+                    value={form.year}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*$/.test(value) && value.length <= 4) {
+                        handleChange("year", value);
+                      }
+                    }}
+                    maxLength={4}
+                    className="bg-input border-border"
+                  />
+                  {form.year && form.year.length !== 4 && (
+                    <p className="text-sm text-destructive">
+                      Year must be exactly 4 digits
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Price per Day *</Label>
+                  <Input
+                    type="number"
+                    value={form.pricePerDay}
+                    onChange={(e) =>
+                      handleChange("pricePerDay", e.target.value)
+                    }
+                    className="bg-input border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Fuel Type *</Label>
+                  <StableSelect
+                    value={form.fuelType || undefined}
+                    onValueChange={onFuelTypeChange}
+                    placeholder="Select fuel type"
+                    triggerClassName="bg-input border-border"
+                    options={fuelTypeOptions}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Transmission *</Label>
+                  <StableSelect
+                    value={form.transmission || undefined}
+                    onValueChange={onTransmissionChange}
+                    placeholder="Select transmission"
+                    triggerClassName="bg-input border-border"
+                    options={transmissionOptions}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Number of Seats</Label>
+                  <StableSelect
+                    value={form.seats || undefined}
+                    onValueChange={onSeatsChange}
+                    placeholder="Select seats"
+                    triggerClassName="bg-input border-border"
+                    options={seatOptions}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>City</Label>
+                  <Input
+                    value={form.location}
+                    onChange={(e) => handleChange("location", e.target.value)}
+                    className="bg-input border-border"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description *</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  className="bg-input border-border min-h-[120px]"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <Label>Features</Label>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {features.map((feature) => {
+                    const checked = form.features.includes(feature);
+
+                    return (
+                      <button
+                        key={feature}
+                        type="button"
+                        onClick={() => setFeatureChecked(feature)}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors text-left ${
+                          checked
+                            ? "bg-primary/10 border-primary"
+                            : "bg-card border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded-sm border text-xs ${
+                            checked
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-border"
+                          }`}
+                        >
+                          {checked ? "✓" : ""}
+                        </span>
+
+                        <span className="text-sm">{feature}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-border">
+                <Label>Rental Rules</Label>
+
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={form.rules.noSmoking}
+                    onCheckedChange={(checked) =>
+                      handleChange("rules.noSmoking", checked as boolean)
+                    }
+                  />
+                  <span className="text-sm">No smoking in the vehicle</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={form.rules.noPets}
+                    onCheckedChange={(checked) =>
+                      handleChange("rules.noPets", checked as boolean)
+                    }
+                  />
+                  <span className="text-sm">No pets allowed</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={form.rules.cleanRecord}
+                    onCheckedChange={(checked) =>
+                      handleChange("rules.cleanRecord", checked as boolean)
+                    }
+                  />
+                  <span className="text-sm">Clean driving record required</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm">Minimum driver age:</Label>
+                  <StableSelect
+                    value={form.rules.minAge}
+                    onValueChange={onMinAgeChange}
+                    triggerClassName="w-24 bg-input border-border"
+                    options={minAgeOptions}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Car Images</Label>
+
+                {existingImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {existingImages.map((image) => (
+                      <div key={image} className="relative">
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`}
+                          alt="Car"
+                          className="h-24 w-full object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExistingImages((prev) =>
+                              prev.filter((item) => item !== image),
+                            )
+                          }
+                          className="absolute top-2 right-2 rounded-full bg-destructive text-destructive-foreground w-6 h-6 text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {newImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {newImagePreviews.map((preview, index) => (
+                      <div key={preview} className="relative">
+                        <img
+                          src={preview}
+                          alt="New car"
+                          className="h-24 w-full object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewImageFiles((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            );
+                            setNewImagePreviews((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            );
+                          }}
+                          className="absolute top-2 right-2 rounded-full bg-destructive text-destructive-foreground w-6 h-6 text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="bg-input border-border"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    const availableSlots =
+                      8 - existingImages.length - newImageFiles.length;
+
+                    if (availableSlots <= 0) {
+                      e.target.value = "";
+                      return;
+                    }
+
+                    const limitedFiles = files.slice(0, availableSlots);
+
+                    setNewImageFiles((prev) => [...prev, ...limitedFiles]);
+                    setNewImagePreviews((prev) => [
+                      ...prev,
+                      ...limitedFiles.map((file) => URL.createObjectURL(file)),
+                    ]);
+
+                    e.target.value = "";
+                  }}
+                />
+
+                <p className="text-xs text-muted-foreground">
+                  You can keep, remove, or add images. Maximum 8 images.
+                </p>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                  {error}
+                </div>
               )}
-            </Button>
+
+              <div className="flex justify-end pt-4">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="bg-primary text-primary-foreground"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </>
   );
 }
 

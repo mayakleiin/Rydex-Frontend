@@ -9,19 +9,19 @@ import { Card, CardContent } from "@/components/ui/card";
 function mapCarFromApi(car: any) {
   return {
     id: car._id,
-    name: `${car.brand} ${car.model}`,
+    name: car.title,
     year: car.year,
     price: car.pricePerDay,
     rating: 0,
     reviews: car.commentsCount ?? 0,
-    image: car.image?.startsWith("http")
-      ? car.image
-      : car.image
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
+    image: (car.images?.[0] || car.image)?.startsWith("http")
+      ? car.images?.[0] || car.image
+      : car.images?.[0] || car.image
+        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.images?.[0] || car.image}`
         : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
-    location: car.location,
+    location: car.location ?? "",
     fuelType: car.fuelType ?? "Gasoline",
-    seats: car.seats ?? 4,
+    seats: car.seats ?? "—",
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
@@ -121,7 +121,10 @@ export function CarCard({ car }: CarCardProps) {
               {car.name}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {car.year} • {car.location}
+              {car.year} •{" "}
+              {car.location && car.location.trim() !== ""
+                ? car.location
+                : "Location not specified"}
             </p>
           </div>
           <div className="flex items-center gap-1 text-primary">

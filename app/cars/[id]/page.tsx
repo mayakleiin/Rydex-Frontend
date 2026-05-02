@@ -336,6 +336,18 @@ export default function CarDetailPage() {
     );
   }
 
+  const normalizedFeatures: string[] = Array.isArray(car.features)
+    ? car.features.flatMap((feature: string) => {
+        try {
+          const parsed = JSON.parse(feature);
+
+          return Array.isArray(parsed) ? parsed : feature;
+        } catch {
+          return feature;
+        }
+      })
+    : [];
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -347,15 +359,19 @@ export default function CarDetailPage() {
               Cars
             </Link>
             <span>/</span>
-            <span className="text-foreground">
-              {car.brand} {car.model}
-            </span>
+            <span className="text-foreground">{car.title}</span>
           </nav>
         </div>
 
         {/* Image Gallery */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ImageGallery images={[getImageUrl(car.image)]} />
+          <ImageGallery
+            images={
+              car.images?.length
+                ? car.images.map((image: string) => getImageUrl(image))
+                : [getImageUrl(car.image)]
+            }
+          />{" "}
         </div>
 
         {/* Content */}
@@ -368,13 +384,15 @@ export default function CarDetailPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h1 className="font-serif text-3xl sm:text-4xl font-medium italic text-foreground mb-2">
-                      {car.make} {car.model}
+                      {car.title}
                     </h1>
                     <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
                       <span>{car.year}</span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
-                        {car.location}
+                        {car.location && car.location.trim() !== ""
+                          ? car.location
+                          : "Location not specified"}
                       </span>
                     </div>
                   </div>
@@ -458,9 +476,25 @@ export default function CarDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="features" className="mt-6">
-                  <p className="text-muted-foreground">
-                    No additional features listed.
-                  </p>
+                  {normalizedFeatures.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {normalizedFeatures.map((feature: string) => (
+                        <div
+                          key={feature}
+                          className="flex items-center gap-2 p-3 rounded-lg bg-card border border-border"
+                        >
+                          <Check className="w-4 h-4 text-primary" />
+                          <span className="text-sm text-foreground">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      No additional features listed.
+                    </p>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="reviews" className="mt-6">
