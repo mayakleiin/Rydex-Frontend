@@ -50,7 +50,12 @@ const searchCarsWithAI = async (query: string): Promise<{ message: string; resul
   }, index: number) => ({
     id: car._id,
     name: car.title,
-    image: car.images?.[0] || car.image || "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    image: (() => {
+      const raw = car.images?.[0] || car.image
+      if (!raw) return "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80"
+      if (raw.startsWith("http")) return raw
+      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`
+    })(),
     price: car.pricePerDay,
     location: car.location || "Location not specified",
     match: Math.max(95 - index * 5, 70),
