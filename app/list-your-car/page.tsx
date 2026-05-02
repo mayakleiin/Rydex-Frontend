@@ -101,7 +101,6 @@ export default function ListYourCarPage() {
     fuelType: "",
     transmission: "",
     seats: "",
-    horsepower: "",
     description: "",
     // Step 3 - Features & Rules
     features: [] as string[],
@@ -139,20 +138,17 @@ export default function ListYourCarPage() {
   };
 
   const isStep1Complete = () => {
-    return (
-      formData.brand &&
-      formData.model &&
-      formData.year &&
-      imagePreviews.length > 0
-    );
+    return formData.brand && formData.model && formData.year;
   };
 
   const isStep2Complete = () => {
-    return formData.fuelType && formData.transmission && formData.seats;
+    return (
+      formData.fuelType && formData.transmission && formData.description?.trim()
+    );
   };
 
   const isStep4Complete = () => {
-    return formData.location && formData.pricePerDay;
+    return true; // Step 4 is optional - all fields are optional
   };
 
   const getStepCompletion = (stepNum: number) => {
@@ -189,24 +185,21 @@ export default function ListYourCarPage() {
         setError("Please complete all fields: Brand, Model, and Year");
         return;
       }
-      if (imagePreviews.length === 0) {
-        setError("Please upload at least one photo");
-        return;
-      }
     } else if (currentStep === 2) {
-      if (!formData.fuelType || !formData.transmission || !formData.seats) {
+      if (
+        !formData.fuelType ||
+        !formData.transmission ||
+        !formData.description?.trim()
+      ) {
         setError(
-          "Please complete all fields: Fuel Type, Transmission, and Seats",
+          "Please complete all fields: Fuel Type, Transmission, and Description",
         );
         return;
       }
     } else if (currentStep === 3) {
       // Step 3 is optional for features/rules, no required fields
     } else if (currentStep === 4) {
-      if (!formData.location || !formData.pricePerDay) {
-        setError("Please complete all fields: City and Price per Day");
-        return;
-      }
+      // Step 4 is optional - no required fields
     }
 
     setError("");
@@ -227,10 +220,7 @@ export default function ListYourCarPage() {
       !formData.year ||
       !formData.fuelType ||
       !formData.transmission ||
-      !formData.seats ||
-      !formData.location ||
-      !formData.pricePerDay ||
-      !imagePreviews.length
+      !formData.description?.trim()
     ) {
       setError(
         "Please complete all required fields across all steps before submitting",
@@ -348,7 +338,7 @@ export default function ListYourCarPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="brand">Brand</Label>
+                      <Label htmlFor="brand">Brand *</Label>
                       <Select
                         value={formData.brand}
                         onValueChange={(value) => handleChange("brand", value)}
@@ -366,7 +356,7 @@ export default function ListYourCarPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="model">Model</Label>
+                      <Label htmlFor="model">Model *</Label>
                       <Input
                         id="model"
                         placeholder="e.g., 911 Carrera"
@@ -379,7 +369,7 @@ export default function ListYourCarPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="year">Year</Label>
+                      <Label htmlFor="year">Year *</Label>
                       <Select
                         value={formData.year}
                         onValueChange={(value) => handleChange("year", value)}
@@ -457,7 +447,7 @@ export default function ListYourCarPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>Fuel Type</Label>
+                      <Label>Fuel Type *</Label>
                       <Select
                         value={formData.fuelType}
                         onValueChange={(value) =>
@@ -477,7 +467,7 @@ export default function ListYourCarPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Transmission</Label>
+                      <Label>Transmission *</Label>
                       <Select
                         value={formData.transmission}
                         onValueChange={(value) =>
@@ -517,22 +507,10 @@ export default function ListYourCarPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="horsepower">Horsepower</Label>
-                      <Input
-                        id="horsepower"
-                        placeholder="e.g., 379"
-                        value={formData.horsepower}
-                        onChange={(e) =>
-                          handleChange("horsepower", e.target.value)
-                        }
-                        className="bg-input border-border"
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">Description *</Label>
                     <Textarea
                       id="description"
                       placeholder="Tell renters about your car - what makes it special, its condition, any unique features..."
