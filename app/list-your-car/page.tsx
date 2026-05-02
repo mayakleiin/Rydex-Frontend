@@ -291,7 +291,9 @@ export default function ListYourCarPage() {
       if (formData.transmission)
         body.append("transmission", formData.transmission);
       if (formData.seats) body.append("seats", formData.seats);
-      if (imageFiles[0]) body.append("image", imageFiles[0]);
+      imageFiles.forEach((file) => {
+        body.append("images", file);
+      });
       if (formData.features.length > 0)
         body.append("features", JSON.stringify(formData.features));
       if (Object.keys(formData.rules).length > 0)
@@ -397,7 +399,7 @@ export default function ListYourCarPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {carBrands.map((brand) => (
-                            <SelectItem key={brand} value={brand.toLowerCase()}>
+                            <SelectItem key={brand} value={brand}>
                               {brand}
                             </SelectItem>
                           ))}

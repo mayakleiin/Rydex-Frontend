@@ -14,10 +14,10 @@ function mapCarFromApi(car: any) {
     price: car.pricePerDay,
     rating: 0,
     reviews: car.commentsCount ?? 0,
-    image: car.image?.startsWith("http")
-      ? car.image
-      : car.image
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
+    image: (car.images?.[0] || car.image)?.startsWith("http")
+      ? car.images?.[0] || car.image
+      : car.images?.[0] || car.image
+        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.images?.[0] || car.image}`
         : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location ?? "",
     fuelType: car.fuelType ?? "Gasoline",

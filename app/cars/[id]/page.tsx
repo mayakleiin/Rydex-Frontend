@@ -365,7 +365,13 @@ export default function CarDetailPage() {
 
         {/* Image Gallery */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ImageGallery images={[getImageUrl(car.image)]} />
+          <ImageGallery
+            images={
+              car.images?.length
+                ? car.images.map((image: string) => getImageUrl(image))
+                : [getImageUrl(car.image)]
+            }
+          />{" "}
         </div>
 
         {/* Content */}

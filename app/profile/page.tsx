@@ -55,10 +55,10 @@ function mapCarFromApi(car: any) {
     price: car.pricePerDay,
     rating: 0,
     reviews: car.commentsCount ?? 0,
-    image: car.image?.startsWith("http")
-      ? car.image
-      : car.image
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
+    image: (car.images?.[0] || car.image)?.startsWith("http")
+      ? car.images?.[0] || car.image
+      : car.images?.[0] || car.image
+        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.images?.[0] || car.image}`
         : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
     fuelType: car.fuelType ?? "Gasoline",
@@ -200,6 +200,13 @@ function EditCarDialog({
 
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [existingImages, setExistingImages] = useState<string[]>(
+    car.images?.length ? car.images : car.image ? [car.image] : [],
+  );
+
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+
   const onBrandChange = useCallback((value: string) => {
     setForm((prev) => ({ ...prev, brand: value }));
     if (value !== "Other") setCustomBrand("");
@@ -306,9 +313,11 @@ function EditCarDialog({
       body.append("features", JSON.stringify(form.features));
       body.append("rules", JSON.stringify(form.rules));
 
-      if (fileRef.current?.files?.[0]) {
-        body.append("image", fileRef.current.files[0]);
-      }
+      body.append("keepImages", JSON.stringify(existingImages));
+
+      newImageFiles.forEach((file) => {
+        body.append("images", file);
+      });
 
       const res = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/cars/${car._id}`,
@@ -317,7 +326,14 @@ function EditCarDialog({
           body,
         },
       );
-      const data = await res.json();
+      const text = await res.text();
+
+      let data: any = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(text || "Failed to update car");
+      }
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to update car");
@@ -560,14 +576,93 @@ function EditCarDialog({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Replace Image</Label>
+              <div className="space-y-3">
+                <Label>Car Images</Label>
+
+                {existingImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {existingImages.map((image) => (
+                      <div key={image} className="relative">
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`}
+                          alt="Car"
+                          className="h-24 w-full object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExistingImages((prev) =>
+                              prev.filter((item) => item !== image),
+                            )
+                          }
+                          className="absolute top-2 right-2 rounded-full bg-destructive text-destructive-foreground w-6 h-6 text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {newImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {newImagePreviews.map((preview, index) => (
+                      <div key={preview} className="relative">
+                        <img
+                          src={preview}
+                          alt="New car"
+                          className="h-24 w-full object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewImageFiles((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            );
+                            setNewImagePreviews((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            );
+                          }}
+                          className="absolute top-2 right-2 rounded-full bg-destructive text-destructive-foreground w-6 h-6 text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <Input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="bg-input border-border"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    const availableSlots =
+                      8 - existingImages.length - newImageFiles.length;
+
+                    if (availableSlots <= 0) {
+                      e.target.value = "";
+                      return;
+                    }
+
+                    const limitedFiles = files.slice(0, availableSlots);
+
+                    setNewImageFiles((prev) => [...prev, ...limitedFiles]);
+                    setNewImagePreviews((prev) => [
+                      ...prev,
+                      ...limitedFiles.map((file) => URL.createObjectURL(file)),
+                    ]);
+
+                    e.target.value = "";
+                  }}
                 />
+
+                <p className="text-xs text-muted-foreground">
+                  You can keep, remove, or add images. Maximum 8 images.
+                </p>
               </div>
 
               {error && (
