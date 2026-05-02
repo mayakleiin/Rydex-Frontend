@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Heart, Fuel, Users, Settings, Loader2 } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Fuel,
+  Users,
+  Settings,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -31,6 +38,7 @@ function mapCarFromApi(car: any) {
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
+    commentsCount: car.commentsCount ?? 0,
   };
 }
 
@@ -47,6 +55,7 @@ interface Car {
   owner: { name: string; avatar: string };
   likes: number;
   likesIds?: string[];
+  commentsCount: number;
 }
 
 interface CarCardProps {
@@ -141,11 +150,18 @@ export function CarCard({ car, onLikeChange }: CarCardProps) {
             <Settings className="w-4 h-4" />
             <span>{car.transmission}</span>
           </div>
-          <div
-            className={`flex items-center gap-1 ml-auto ${liked ? "text-red-500" : ""}`}
-          >
-            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-            <span>{likesCount}</span>
+          <div className="flex items-center gap-3 ml-auto">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <MessageCircle className="w-4 h-4" />
+              <span>{car.commentsCount}</span>
+            </div>
+
+            <div
+              className={`flex items-center gap-1 ${liked ? "text-red-500" : ""}`}
+            >
+              <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+              <span>{likesCount}</span>
+            </div>
           </div>
         </div>
 
