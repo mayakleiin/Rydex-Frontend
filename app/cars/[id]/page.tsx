@@ -386,7 +386,9 @@ export default function CarDetailPage() {
                       <span>{car.year}</span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
-                        {car.location}
+                        {car.location && car.location.trim() !== ""
+                          ? car.location
+                          : "Location not specified"}
                       </span>
                     </div>
                   </div>

@@ -19,9 +19,9 @@ function mapCarFromApi(car: any) {
       : car.image
         ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.image}`
         : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
-    location: car.location,
+    location: car.location ?? "",
     fuelType: car.fuelType ?? "Gasoline",
-    seats: car.seats ?? 4,
+    seats: car.seats ?? "—",
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
@@ -121,7 +121,10 @@ export function CarCard({ car }: CarCardProps) {
               {car.name}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {car.year} • {car.location}
+              {car.year} •{" "}
+              {car.location && car.location.trim() !== ""
+                ? car.location
+                : "Location not specified"}
             </p>
           </div>
           <div className="flex items-center gap-1 text-primary">

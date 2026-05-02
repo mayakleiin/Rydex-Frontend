@@ -48,8 +48,7 @@ function mapCarFromApi(car: any) {
     fuelType: car.fuelType
       ? car.fuelType.charAt(0).toUpperCase() + car.fuelType.slice(1)
       : "Gasoline",
-    seats: car.seats ?? 4,
-    horsepower: 0,
+    seats: car.seats ?? "—",
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",

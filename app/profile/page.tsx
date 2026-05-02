@@ -63,8 +63,7 @@ function mapCarFromApi(car: any) {
     location: car.location,
     fuelType: car.fuelType ?? "Gasoline",
     transmission: car.transmission ?? "Automatic",
-    seats: car.seats ?? 4,
-    horsepower: 0,
+    seats: car.seats ?? "—",
     owner: {
       name: car.owner?.username ?? "Owner",
       avatar: getAvatarUrl(car.owner?.profileImage),
