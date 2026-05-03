@@ -152,3 +152,4 @@ export default function OwnerBookingsPage() {
     </div>
   )
 }
+console.log("test")
