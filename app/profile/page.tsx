@@ -68,7 +68,7 @@ function mapCarFromApi(car: any) {
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
-    commentsCount: car.comments?.length ?? 0,
+    commentsCount: car.commentsCount ?? 0,
   };
 }
 
