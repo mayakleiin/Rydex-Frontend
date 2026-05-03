@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
+// @ts-expect-error CSS modules are handled by Next.js at build time.
 import "./globals.css";
 
 // Clean modern sans-serif similar to TT Hoves / Helios Extended

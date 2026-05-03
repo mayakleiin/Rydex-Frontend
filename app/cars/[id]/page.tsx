@@ -518,7 +518,9 @@ export default function CarDetailPage() {
                 <TabsList className="w-full justify-start bg-card border border-border">
                   <TabsTrigger value="description">Description</TabsTrigger>
                   <TabsTrigger value="features">Features</TabsTrigger>
-                  <TabsTrigger value="comments">Comments</TabsTrigger>{" "}
+                  <Button asChild variant="ghost" className="h-9 px-4">
+                    <Link href={`/cars/${carId}/comments`}>Comments</Link>
+                  </Button>{" "}
                 </TabsList>
 
                 <TabsContent value="description" className="mt-6">
@@ -549,10 +551,6 @@ export default function CarDetailPage() {
                       No additional features listed.
                     </p>
                   )}
-                </TabsContent>
-
-                <TabsContent value="comments" className="mt-6">
-                  <CommentSection carId={carId} />
                 </TabsContent>
               </Tabs>
             </div>
