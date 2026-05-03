@@ -281,6 +281,7 @@ export default function CarDetailPage() {
   });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingMessage, setBookingMessage] = useState("");
+  const [bookingSent, setBookingSent] = useState(false)
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${carId}`)
@@ -725,12 +726,7 @@ export default function CarDetailPage() {
                         {bookingMessage}
                       </p>
                     )}
-                    {bookingMessage && (
-                      <p className="mt-3 text-center text-sm text-muted-foreground">
-                        {bookingMessage}
-                      </p>
-                    )}
-
+                    
                     {/* Trust Badges */}
                     <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
