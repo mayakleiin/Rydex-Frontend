@@ -281,7 +281,7 @@ export default function CarDetailPage() {
   });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingMessage, setBookingMessage] = useState("");
-  const [bookingSent, setBookingSent] = useState(false)
+  const [bookingSent, setBookingSent] = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${carId}`)
@@ -343,12 +343,19 @@ export default function CarDetailPage() {
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.message || "Booking failed");
+        const contentType = res.headers.get("content-type") || "";
+        const body = await res.text();
+        let errorMessage = "Booking failed";
+        if (contentType.includes("application/json")) {
+          try {
+            errorMessage = JSON.parse(body).message || errorMessage;
+          } catch {}
+        }
+        throw new Error(errorMessage);
       }
 
+      const data = await res.json();
       setBookingMessage("Your booking request is waiting for owner approval");
     } catch (err: any) {
       setBookingMessage(err.message || "Booking failed");
@@ -726,7 +733,7 @@ export default function CarDetailPage() {
                         {bookingMessage}
                       </p>
                     )}
-                    
+
                     {/* Trust Badges */}
                     <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
