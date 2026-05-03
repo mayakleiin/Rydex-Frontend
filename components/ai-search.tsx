@@ -10,7 +10,6 @@ import {
   Loader2,
   Car,
   MapPin,
-  Calendar,
   DollarSign,
   X,
   Mic,
@@ -29,140 +28,45 @@ interface SearchResult {
   reason: string
 }
 
-// Simulated AI responses based on query
-const simulateAISearch = async (query: string): Promise<{ message: string; results: SearchResult[] }> => {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+const searchCarsWithAI = async (query: string): Promise<{ message: string; results: SearchResult[] }> => {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  })
 
-  const queryLower = query.toLowerCase()
+  if (!res.ok) throw new Error("Search failed")
 
-  // Different responses based on query content
-  if (queryLower.includes("family") || queryLower.includes("kids") || queryLower.includes("spacious")) {
-    return {
-      message: "I found some great family-friendly vehicles with plenty of space for everyone. Here are my top recommendations:",
-      results: [
-        {
-          id: "5",
-          name: "Range Rover Sport",
-          image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&auto=format&fit=crop&q=60",
-          price: 275,
-          location: "New York, NY",
-          match: 98,
-          reason: "Spacious 7-seater with premium comfort features",
-        },
-        {
-          id: "6",
-          name: "BMW X7",
-          image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&auto=format&fit=crop&q=60",
-          price: 320,
-          location: "Los Angeles, CA",
-          match: 95,
-          reason: "Luxurious SUV with 3rd row seating",
-        },
-      ],
-    }
-  }
+  const data = await res.json()
 
-  if (queryLower.includes("sport") || queryLower.includes("fast") || queryLower.includes("performance")) {
-    return {
-      message: "Looking for thrills? Here are some high-performance vehicles that will get your heart racing:",
-      results: [
-        {
-          id: "2",
-          name: "Porsche 911 Carrera",
-          image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=60",
-          price: 450,
-          location: "Miami, FL",
-          match: 99,
-          reason: "Iconic sports car with 379hp and perfect handling",
-        },
-        {
-          id: "4",
-          name: "BMW M4 Competition",
-          image: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=60",
-          price: 380,
-          location: "San Francisco, CA",
-          match: 96,
-          reason: "503hp twin-turbo for ultimate performance",
-        },
-      ],
-    }
-  }
+  const results: SearchResult[] = (data.cars ?? []).map((car: {
+    _id: string
+    title: string
+    image?: string
+    images?: string[]
+    pricePerDay: number
+    location?: string
+    description?: string
+  }, index: number) => ({
+    id: car._id,
+    name: car.title,
+    image: (() => {
+      const raw = car.images?.[0] || car.image
+      if (!raw) return "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80"
+      if (raw.startsWith("http")) return raw
+      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`
+    })(),
+    price: car.pricePerDay,
+    location: car.location || "Location not specified",
+    match: Math.max(95 - index * 5, 70),
+    reason: car.description ?? "",
+  }))
 
-  if (queryLower.includes("electric") || queryLower.includes("eco") || queryLower.includes("tesla")) {
-    return {
-      message: "Great choice going electric! Here are some premium EVs with excellent range:",
-      results: [
-        {
-          id: "1",
-          name: "Tesla Model S Plaid",
-          image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=60",
-          price: 299,
-          location: "Los Angeles, CA",
-          match: 100,
-          reason: "1,020hp, 390mi range, fastest acceleration",
-        },
-        {
-          id: "7",
-          name: "Mercedes EQS",
-          image: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop&q=60",
-          price: 350,
-          location: "New York, NY",
-          match: 94,
-          reason: "Ultra-luxury EV with 350mi range",
-        },
-      ],
-    }
-  }
-
-  if (queryLower.includes("cheap") || queryLower.includes("budget") || queryLower.includes("affordable")) {
-    return {
-      message: "I found some great value options that won't break the bank:",
-      results: [
-        {
-          id: "8",
-          name: "BMW 3 Series",
-          image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&auto=format&fit=crop&q=60",
-          price: 150,
-          location: "Chicago, IL",
-          match: 92,
-          reason: "Premium sedan at an accessible price point",
-        },
-        {
-          id: "9",
-          name: "Audi A4",
-          image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&auto=format&fit=crop&q=60",
-          price: 140,
-          location: "Dallas, TX",
-          match: 90,
-          reason: "Luxury features with great fuel economy",
-        },
-      ],
-    }
-  }
-
-  // Default response
   return {
-    message: "Based on your request, here are some vehicles that might interest you:",
-    results: [
-      {
-        id: "1",
-        name: "Tesla Model S Plaid",
-        image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=60",
-        price: 299,
-        location: "Los Angeles, CA",
-        match: 95,
-        reason: "Premium electric sedan with cutting-edge technology",
-      },
-      {
-        id: "2",
-        name: "Porsche 911 Carrera",
-        image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=60",
-        price: 450,
-        location: "Miami, FL",
-        match: 88,
-        reason: "Iconic sports car for an unforgettable experience",
-      },
-    ],
+    message: results.length > 0
+      ? `Found ${results.length} car${results.length !== 1 ? "s" : ""} matching your request:`
+      : "No cars found matching your request. Try different keywords.",
+    results,
   }
 }
 
@@ -191,7 +95,7 @@ export function AISearch({ isOpen, onClose }: AISearchProps) {
     setResponse(null)
 
     try {
-      const result = await simulateAISearch(query)
+      const result = await searchCarsWithAI(query)
       setResponse(result)
     } catch {
       setResponse({
@@ -329,14 +233,16 @@ export function AISearch({ isOpen, onClose }: AISearchProps) {
                       <Card className="bg-muted/50 border-border hover:border-primary/50 transition-colors cursor-pointer">
                         <CardContent className="p-3">
                           <div className="flex gap-4">
-                            <div className="relative w-24 h-20 rounded-lg overflow-hidden shrink-0">
-                              <Image
-                                src={car.image}
-                                alt={car.name}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
+                            {car.image && (
+                              <div className="relative w-24 h-20 rounded-lg overflow-hidden shrink-0">
+                                <Image
+                                  src={car.image}
+                                  alt={car.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2 mb-1">
                                 <h3 className="font-semibold text-foreground truncate">

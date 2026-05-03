@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Heart, Star, Fuel, Users, Settings, Loader2 } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Fuel,
+  Users,
+  Settings,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { authFetch } from "@/lib/authFetch";
 
 function mapCarFromApi(car: any) {
   return {
@@ -12,8 +20,6 @@ function mapCarFromApi(car: any) {
     name: car.title,
     year: car.year,
     price: car.pricePerDay,
-    rating: 0,
-    reviews: car.commentsCount ?? 0,
     image: (car.images?.[0] || car.image)?.startsWith("http")
       ? car.images?.[0] || car.image
       : car.images?.[0] || car.image
@@ -33,6 +39,7 @@ function mapCarFromApi(car: any) {
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
+    commentsCount: car.commentsCount ?? 0,
   };
 }
 
@@ -41,8 +48,6 @@ interface Car {
   name: string;
   year: number;
   price: number;
-  rating: number;
-  reviews: number;
   image: string;
   location: string;
   fuelType: string;
@@ -51,13 +56,15 @@ interface Car {
   owner: { name: string; avatar: string };
   likes: number;
   likesIds?: string[];
+  commentsCount: number;
 }
 
 interface CarCardProps {
   car: Car;
+  onLikeChange?: (carId: string, liked: boolean) => void;
 }
 
-export function CarCard({ car }: CarCardProps) {
+export function CarCard({ car, onLikeChange }: CarCardProps) {
   const userId =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("user") || "null")?._id
@@ -70,14 +77,22 @@ export function CarCard({ car }: CarCardProps) {
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    if (!localStorage.getItem("accessToken")) return;
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikesCount(newLiked ? likesCount + 1 : likesCount - 1);
+    onLikeChange?.(car.id, newLiked);
+    try {
+      const res = await authFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`,
+        { method: "POST" },
+      );
+      if (!res.ok) throw new Error();
+    } catch {
+      setLiked(!newLiked);
+      setLikesCount(newLiked ? likesCount : likesCount + 1);
+      onLikeChange?.(car.id, !newLiked);
+    }
   };
 
   return (
@@ -127,13 +142,6 @@ export function CarCard({ car }: CarCardProps) {
                 : "Location not specified"}
             </p>
           </div>
-          <div className="flex items-center gap-1 text-primary">
-            <Star className="w-4 h-4 fill-current" />
-            <span className="text-sm font-medium">{car.rating}</span>
-            <span className="text-xs text-muted-foreground">
-              ({car.reviews})
-            </span>
-          </div>
         </div>
 
         <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
@@ -149,11 +157,18 @@ export function CarCard({ car }: CarCardProps) {
             <Settings className="w-4 h-4" />
             <span>{car.transmission}</span>
           </div>
-          <div
-            className={`flex items-center gap-1 ml-auto ${liked ? "text-red-500" : ""}`}
-          >
-            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-            <span>{likesCount}</span>
+          <div className="flex items-center gap-3 ml-auto">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <MessageCircle className="w-4 h-4" />
+              <span>{car.commentsCount}</span>
+            </div>
+
+            <div
+              className={`flex items-center gap-1 ${liked ? "text-red-500" : ""}`}
+            >
+              <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+              <span>{likesCount}</span>
+            </div>
           </div>
         </div>
 

@@ -54,8 +54,6 @@ function mapCarFromApi(car: any) {
     name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
-    rating: 0,
-    reviews: car.commentsCount ?? 0,
     image: (car.images?.[0] || car.image)?.startsWith("http")
       ? car.images?.[0] || car.image
       : car.images?.[0] || car.image
@@ -71,6 +69,7 @@ function mapCarFromApi(car: any) {
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
+    commentsCount: car.commentsCount ?? 0,
   };
 }
 
@@ -915,6 +914,34 @@ setBookingRequests(uniqueBookings);
     );
   };
 
+  const handleLikeChange = (carId: string, isLiked: boolean) => {
+    const userId = JSON.parse(localStorage.getItem("user") || "null")?._id;
+
+    const updateCarLikes = (car: ReturnType<typeof mapCarFromApi>) => {
+      if (car.id !== carId) return car;
+      return {
+        ...car,
+        likes: isLiked ? car.likes + 1 : car.likes - 1,
+        likesIds: isLiked
+          ? [...(car.likesIds ?? []), userId]
+          : (car.likesIds ?? []).filter((id: string) => id !== userId),
+      };
+    };
+
+    setUserCars((prev) => prev.map(updateCarLikes));
+
+    if (!isLiked) {
+      setFavoriteCars((prev) => prev.filter((c) => c.id !== carId));
+    } else {
+      setFavoriteCars((prev) => {
+        if (prev.some((c) => c.id === carId)) return prev.map(updateCarLikes);
+        const carToAdd = userCars.find((c) => c.id === carId);
+        if (!carToAdd) return prev;
+        return [...prev, updateCarLikes(carToAdd)];
+      });
+    }
+  };
+
   const handleCarDeleted = async (carId: string) => {
     const token = localStorage.getItem("accessToken");
     const res = await fetch(
@@ -1078,7 +1105,7 @@ setBookingRequests(uniqueBookings);
                     const raw = rawCars.find((r) => r._id === car.id);
                     return (
                       <div key={car.id} className="flex flex-col">
-                        <CarCard car={car} />
+                        <CarCard car={car} onLikeChange={handleLikeChange} />
                         <div className="flex gap-2 mt-2">
                           {raw && (
                             <EditCarDialog
@@ -1124,7 +1151,11 @@ setBookingRequests(uniqueBookings);
               {favoriteCars.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {favoriteCars.map((car) => (
-                    <CarCard key={car.id} car={car} />
+                    <CarCard
+                      key={car.id}
+                      car={car}
+                      onLikeChange={handleLikeChange}
+                    />
                   ))}
                 </div>
               ) : (

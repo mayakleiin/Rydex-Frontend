@@ -39,12 +39,13 @@ function mapCarFromApi(car: any) {
     name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
-    rating: 0,
-    reviews: car.commentsCount ?? 0,
-    image:
-      car.images?.[0] ||
-      car.image ||
-      "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+    image: (() => {
+      const raw = car.images?.[0] || car.image;
+      if (!raw)
+        return "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80";
+      if (raw.startsWith("http")) return raw;
+      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`;
+    })(),
     location: car.location,
     fuelType: car.fuelType
       ? car.fuelType.charAt(0).toUpperCase() + car.fuelType.slice(1)
@@ -53,12 +54,17 @@ function mapCarFromApi(car: any) {
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
-      avatar:
-        car.owner?.profileImage ||
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
+      avatar: (() => {
+        const raw = car.owner?.profileImage;
+        if (!raw)
+          return "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80";
+        if (raw.startsWith("http")) return raw;
+        return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`;
+      })(),
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
+    commentsCount: car.commentsCount ?? 0,
   };
 }
 
@@ -70,7 +76,6 @@ const sortOptions = [
   { value: "recommended", label: "Recommended" },
   { value: "price-low", label: "Price: Low to High" },
   { value: "price-high", label: "Price: High to Low" },
-  { value: "rating", label: "Highest Rated" },
   { value: "newest", label: "Newest First" },
 ];
 
@@ -356,9 +361,6 @@ export default function CarsPage() {
         break;
       case "price-high":
         filtered = [...filtered].sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        filtered = [...filtered].sort((a, b) => b.rating - a.rating);
         break;
       case "newest":
         filtered = [...filtered].sort((a, b) => b.year - a.year);
