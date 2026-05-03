@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Menu, X, Heart, Sparkles, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AISearch } from "@/components/ai-search"
+import { getUploadUrl } from "@/lib/uploads"
 
 interface NavigationProps {
   isAuthenticated?: boolean
@@ -34,11 +35,7 @@ export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: Navi
         isAuthenticated: true,
         user: {
           name: u.username,
-          avatar: u.profileImage?.startsWith("http")
-            ? u.profileImage
-            : u.profileImage
-            ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${u.profileImage}`
-            : undefined,
+avatar: u.profileImage ? getUploadUrl(u.profileImage) : undefined,
         },
       })
     }
@@ -47,15 +44,20 @@ export function Navigation({ isAuthenticated: isAuthProp, user: userProp }: Navi
   const isAuthenticated = isAuthProp ?? authState.isAuthenticated
   const user = userProp ?? authState.user
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
-    localStorage.removeItem("user")
-    setMobileMenuOpen(false)
-    router.push("/")
-    router.refresh()
-  }
+const handleLogout = () => {
+  localStorage.removeItem("accessToken")
+  localStorage.removeItem("refreshToken")
+  localStorage.removeItem("user")
 
+  setAuthState({
+    isAuthenticated: false,
+    user: null,
+  })
+
+  setMobileMenuOpen(false)
+
+  window.location.href = "/"
+}
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

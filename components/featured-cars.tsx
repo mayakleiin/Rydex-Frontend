@@ -13,29 +13,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { authFetch } from "@/lib/authFetch";
-
+import { getUploadUrl } from "@/lib/uploads";
 function mapCarFromApi(car: any) {
   return {
     id: car._id,
     name: car.title,
     year: car.year,
     price: car.pricePerDay,
-    image: (car.images?.[0] || car.image)?.startsWith("http")
-      ? car.images?.[0] || car.image
-      : car.images?.[0] || car.image
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.images?.[0] || car.image}`
-        : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
+image: car.images?.[0] || car.image
+  ? getUploadUrl(car.images?.[0] || car.image)
+  : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location ?? "",
     fuelType: car.fuelType ?? "Gasoline",
     seats: car.seats ?? "—",
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
-      avatar: car.owner?.profileImage?.startsWith("http")
-        ? car.owner.profileImage
-        : car.owner?.profileImage
-          ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.owner.profileImage}`
-          : "",
+      avatar: car.owner?.profileImage ? getUploadUrl(car.owner.profileImage) : "",
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],

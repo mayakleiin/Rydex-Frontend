@@ -40,20 +40,18 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import { getUploadUrl } from "@/lib/uploads";
 
 function getImageUrl(image: string | undefined) {
-  if (!image)
-    return "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=80";
-  if (image.startsWith("http")) return image;
-  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`;
+  return image
+    ? getUploadUrl(image)
+    : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=80";
 }
+
 
 function getAvatarUrl(profileImage: string | undefined) {
-  if (!profileImage) return "";
-  if (profileImage.startsWith("http")) return profileImage;
-  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${profileImage}`;
+  return profileImage ? getUploadUrl(profileImage) : "";
 }
-
 function ImageGallery({ images }: { images: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 

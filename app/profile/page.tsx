@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback, memo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Navigation } from "@/components/navigation";
@@ -41,11 +41,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getUploadUrl } from "@/lib/uploads";
+
 
 function getAvatarUrl(profileImage: string | undefined) {
-  if (!profileImage) return "";
-  if (profileImage.startsWith("http")) return profileImage;
-  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${profileImage}`;
+  return profileImage ? getUploadUrl(profileImage) : "";
 }
 
 function mapCarFromApi(car: any) {
@@ -54,12 +54,9 @@ function mapCarFromApi(car: any) {
     name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
-    image: (car.images?.[0] || car.image)?.startsWith("http")
-      ? car.images?.[0] || car.image
-      : car.images?.[0] || car.image
-        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${car.images?.[0] || car.image}`
-        : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
-    location: car.location,
+image: car.images?.[0] || car.image
+  ? getUploadUrl(car.images?.[0] || car.image)
+  : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     fuelType: car.fuelType ?? "Gasoline",
     transmission: car.transmission ?? "Automatic",
     seats: car.seats ?? "—",
@@ -584,7 +581,7 @@ function EditCarDialog({
                     {existingImages.map((image) => (
                       <div key={image} className="relative">
                         <img
-                          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`}
+src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`}
                           alt="Car"
                           className="h-24 w-full object-cover rounded-lg border border-border"
                         />
@@ -843,7 +840,7 @@ type BookingRequest = {
   };
 };
 
-export default function ProfilePage() {
+function ProfileContent() {
   const [user, setUser] = useState<any>(null);
   const [userCars, setUserCars] = useState<ReturnType<typeof mapCarFromApi>[]>(
     [],
@@ -1255,5 +1252,18 @@ setBookingRequests(uniqueBookings);
       </main>
       <Footer />
     </div>
+  );
+}
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
   );
 }

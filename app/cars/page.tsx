@@ -32,20 +32,16 @@ import {
   List,
   Loader2,
 } from "lucide-react";
-
+import { getUploadUrl } from "@/lib/uploads";
 function mapCarFromApi(car: any) {
   return {
     id: car._id,
     name: `${car.brand} ${car.model}`,
     year: car.year,
     price: car.pricePerDay,
-    image: (() => {
-      const raw = car.images?.[0] || car.image;
-      if (!raw)
-        return "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80";
-      if (raw.startsWith("http")) return raw;
-      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`;
-    })(),
+image: car.images?.[0] || car.image
+  ? getUploadUrl(car.images?.[0] || car.image)
+  : "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
     location: car.location,
     fuelType: car.fuelType
       ? car.fuelType.charAt(0).toUpperCase() + car.fuelType.slice(1)
@@ -54,13 +50,9 @@ function mapCarFromApi(car: any) {
     transmission: car.transmission ?? "Automatic",
     owner: {
       name: car.owner?.username ?? "Owner",
-      avatar: (() => {
-        const raw = car.owner?.profileImage;
-        if (!raw)
-          return "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80";
-        if (raw.startsWith("http")) return raw;
-        return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${raw}`;
-      })(),
+avatar: car.owner?.profileImage
+  ? getUploadUrl(car.owner.profileImage)
+  : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
     },
     likes: car.likes?.length ?? 0,
     likesIds: car.likes ?? [],
