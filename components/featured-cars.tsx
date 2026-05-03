@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { authFetch } from "@/lib/authFetch";
 
 function mapCarFromApi(car: any) {
   return {
@@ -76,16 +77,22 @@ export function CarCard({ car, onLikeChange }: CarCardProps) {
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
+    if (!localStorage.getItem("accessToken")) return;
     const newLiked = !liked;
     setLiked(newLiked);
     setLikesCount(newLiked ? likesCount + 1 : likesCount - 1);
     onLikeChange?.(car.id, newLiked);
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await authFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/cars/${car.id}/like`,
+        { method: "POST" },
+      );
+      if (!res.ok) throw new Error();
+    } catch {
+      setLiked(!newLiked);
+      setLikesCount(newLiked ? likesCount : likesCount + 1);
+      onLikeChange?.(car.id, !newLiked);
+    }
   };
 
   return (
